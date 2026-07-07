@@ -5,7 +5,7 @@
 package com.flowershop.model;
 
 import java.math.BigDecimal;
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 /**
  *
