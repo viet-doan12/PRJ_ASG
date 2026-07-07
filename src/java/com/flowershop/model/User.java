@@ -4,7 +4,7 @@
  */
 package com.flowershop.model;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 /**
  *
@@ -21,13 +21,9 @@ public class User {
     private boolean status;
     private Timestamp createdDate;
     private Timestamp updatedDate;
+    private String roleName;
 
-    public User() {
-    }
-
-    public User(int userID, String fullName, String email, String password,
-            String phone, String address, int roleID, boolean status,
-            Timestamp createdDate, Timestamp updatedDate) {
+    public User(int userID, String fullName, String email, String password, String phone, String address, int roleID, boolean status, Timestamp createdDate, Timestamp updatedDate, String roleName) {
         this.userID = userID;
         this.fullName = fullName;
         this.email = email;
@@ -38,6 +34,18 @@ public class User {
         this.status = status;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
+        this.roleName = roleName;
+    }
+
+    public User() {
+    }
+
+    public String getRoleName() {
+        return roleName;
+    }
+
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
     }
 
     public int getUserID() {
