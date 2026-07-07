@@ -20,7 +20,6 @@ import java.util.List;
  */
 public class FlowerDAO extends DBContext {
 
-    // ================= 1. getAllFlowers =================
     public List<Flower> getAllFlowers() {
         List<Flower> list = new ArrayList<>();
         String sql = "SELECT * FROM Flowers ORDER BY FlowerID";
@@ -36,7 +35,6 @@ public class FlowerDAO extends DBContext {
         return list;
     }
 
-    // ================= 2. getFlowerById =================
     public Flower getFlowerById(int flowerID) {
         String sql = "SELECT * FROM Flowers WHERE FlowerID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -86,7 +84,7 @@ public class FlowerDAO extends DBContext {
             if (rows > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
-                        return rs.getInt(1); // new FlowerID
+                        return rs.getInt(1);
                     }
                 }
             }
