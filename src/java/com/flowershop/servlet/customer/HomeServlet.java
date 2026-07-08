@@ -55,7 +55,10 @@ public class HomeServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {
-        processRequest(request, response);
+        com.flowershop.dao.CategoryDAO categoryDAO = new com.flowershop.dao.CategoryDAO();
+        java.util.List<com.flowershop.model.Category> categories = categoryDAO.getActiveCategories();
+        request.setAttribute("categories", categories);
+        request.getRequestDispatcher("/WEB-INF/jsp/customer/homepage.jsp").forward(request, response);
     } 
 
     /** 
