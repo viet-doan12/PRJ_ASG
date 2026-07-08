@@ -8,45 +8,54 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
 import java.io.IOException;
 
 @WebServlet(name = "VerifyOTPServlet", urlPatterns = {"/verify-otp"})
 public class VerifyOTPServlet extends HttpServlet {
 
-    private static final String VERIFY_VIEW = "/WEB-INF/jsp/auth/verify-otp.jsp";
+    private static final String VERIFY_VIEW
+            = "/WEB-INF/jsp/auth/verify-otp.jsp";
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         HttpSession session = request.getSession(false);
 
-        if (session == null || session.getAttribute("tempUser") == null) {
-            response.sendRedirect(request.getContextPath() + "/register");
+        if (session == null
+                || session.getAttribute("otp") == null
+                || session.getAttribute("otpType") == null) {
+
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
-        request.getRequestDispatcher(VERIFY_VIEW).forward(request, response);
+        request.getRequestDispatcher(VERIFY_VIEW)
+                .forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         HttpSession session = request.getSession(false);
 
         if (session == null) {
-            response.sendRedirect(request.getContextPath() + "/register");
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
-        User tempUser = (User) session.getAttribute("tempUser");
+        String otpType = (String) session.getAttribute("otpType");
         String sessionOTP = (String) session.getAttribute("otp");
         Long expireTime = (Long) session.getAttribute("otpExpireTime");
         Integer retry = (Integer) session.getAttribute("otpRetry");
 
-        if (tempUser == null || sessionOTP == null || expireTime == null) {
-            response.sendRedirect(request.getContextPath() + "/register");
+        if (otpType == null || sessionOTP == null || expireTime == null) {
+            session.invalidate();
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
@@ -56,21 +65,30 @@ public class VerifyOTPServlet extends HttpServlet {
 
         String inputOTP = request.getParameter("otp");
 
+        if (inputOTP == null) {
+            inputOTP = "";
+        }
+
+        inputOTP = inputOTP.trim();
+
+        // ==========================
         // OTP hết hạn
+        // ==========================
         if (System.currentTimeMillis() > expireTime) {
 
             session.invalidate();
 
             request.setAttribute("error",
-                    "Mã OTP đã hết hạn. Vui lòng đăng ký lại.");
+                    "Mã OTP đã hết hạn. Vui lòng thực hiện lại.");
 
-            request.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp")
+            request.getRequestDispatcher(VERIFY_VIEW)
                     .forward(request, response);
-
             return;
         }
 
+        // ==========================
         // OTP sai
+        // ==========================
         if (!sessionOTP.equals(inputOTP)) {
 
             retry++;
@@ -82,11 +100,10 @@ public class VerifyOTPServlet extends HttpServlet {
                 session.invalidate();
 
                 request.setAttribute("error",
-                        "Bạn đã nhập sai OTP quá nhiều lần.");
+                        "Bạn đã nhập sai OTP quá 5 lần.");
 
-                request.getRequestDispatcher("/WEB-INF/jsp/auth/register.jsp")
+                request.getRequestDispatcher(VERIFY_VIEW)
                         .forward(request, response);
-
                 return;
             }
 
@@ -101,29 +118,84 @@ public class VerifyOTPServlet extends HttpServlet {
             return;
         }
 
-        // ==========================
-        // OTP ĐÚNG
-        // ==========================
+        // =====================================================
+        // ĐĂNG KÝ
+        // =====================================================
+        if ("REGISTER".equals(otpType)) {
 
-        UserDAO dao = new UserDAO();
+            User tempUser = (User) session.getAttribute("tempUser");
 
-        int newId = dao.insertUser(tempUser);
+            if (tempUser == null) {
 
-        if (newId <= 0) {
+                session.invalidate();
 
-            request.setAttribute("error",
-                    "Không thể tạo tài khoản.");
+                response.sendRedirect(request.getContextPath()
+                        + "/register");
 
-            request.getRequestDispatcher(VERIFY_VIEW)
-                    .forward(request, response);
+                return;
+            }
+
+            UserDAO dao = new UserDAO();
+
+            int newId = dao.insertUser(tempUser);
+
+            if (newId <= 0) {
+
+                request.setAttribute("error",
+                        "Không thể tạo tài khoản.");
+
+                request.getRequestDispatcher(VERIFY_VIEW)
+                        .forward(request, response);
+
+                return;
+            }
+
+            session.invalidate();
+
+            response.sendRedirect(request.getContextPath()
+                    + "/login?verified=1");
 
             return;
         }
 
+        // =====================================================
+        // QUÊN MẬT KHẨU
+        // =====================================================
+        if ("FORGOT_PASSWORD".equals(otpType)) {
+
+            User resetUser = (User) session.getAttribute("resetUser");
+
+            if (resetUser == null) {
+
+                session.invalidate();
+
+                response.sendRedirect(request.getContextPath()
+                        + "/forgot-password");
+
+                return;
+            }
+
+            // Đánh dấu đã xác thực OTP
+            session.setAttribute("otpVerified", true);
+
+            // Xóa dữ liệu OTP
+            session.removeAttribute("otp");
+            session.removeAttribute("otpExpireTime");
+            session.removeAttribute("otpRetry");
+            session.removeAttribute("otpType");
+
+            response.sendRedirect(request.getContextPath()
+                    + "/reset-password");
+
+            return;
+        }
+
+        // =====================================================
+        // Sai loại OTP
+        // =====================================================
         session.invalidate();
 
-        response.sendRedirect(
-                request.getContextPath()
-                        + "/login?verified=1");
+        response.sendRedirect(request.getContextPath()
+                + "/login");
     }
 }

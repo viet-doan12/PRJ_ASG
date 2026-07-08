@@ -1,83 +1,150 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package com.flowershop.servlet.auth;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.flowershop.dao.UserDAO;
+import com.flowershop.model.User;
+import com.flowershop.util.EmailUtil;
+import com.flowershop.util.OTPUtil;
+import com.flowershop.util.ValidationUtil;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
-/**
- *
- * @author ADMIN
- */
-@WebServlet(name="ForgotPasswordServlet", urlPatterns={"/forgot-password"})
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+@WebServlet(name = "ForgotPasswordServlet", urlPatterns = {"/forgot-password"})
 public class ForgotPasswordServlet extends HttpServlet {
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ForgotPasswordServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ForgotPasswordServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+
+    private static final Logger LOGGER
+            = Logger.getLogger(ForgotPasswordServlet.class.getName());
+
+    private static final String FORGOT_VIEW
+            = "/WEB-INF/jsp/auth/forgot-password.jsp";
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+
+        // Đã đăng nhập thì không cần dùng chức năng quên mật khẩu
+        if (session != null && session.getAttribute("user") != null) {
+            response.sendRedirect(request.getContextPath() + "/home");
+            return;
         }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
-
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
+        forward(request, response);
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
     @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
+    protected void doPost(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
 
+        String email = request.getParameter("email");
+        email = email == null ? "" : email.trim();
+
+        request.setAttribute("email", email);
+
+        // ==========================
+        // Validate Email
+        // ==========================
+        if (!ValidationUtil.isValidEmail(email)) {
+            request.setAttribute("error", "Email không hợp lệ.");
+            forward(request, response);
+            return;
+        }
+
+        UserDAO userDAO = new UserDAO();
+        User user = userDAO.getUserByEmail(email);
+
+        if (user == null) {
+            request.setAttribute("error", "Email chưa được đăng ký.");
+            forward(request, response);
+            return;
+        }
+
+        if (!user.isStatus()) {
+            request.setAttribute("error",
+                    "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            forward(request, response);
+            return;
+        }
+
+        // ==========================
+        // Sinh OTP
+        // ==========================
+        String otp = OTPUtil.generateOTP();
+        long expireTime = OTPUtil.getExpireTime();
+
+        // ==========================
+        // Gửi Email
+        // ==========================
+        try {
+
+            EmailUtil.sendOTP(email, otp);
+
+        } catch (MessagingException ex) {
+
+            LOGGER.log(Level.SEVERE, "Cannot send OTP Email.", ex);
+
+            request.setAttribute("error",
+                    "Không thể gửi Email xác nhận. Vui lòng thử lại.");
+
+            forward(request, response);
+            return;
+        }
+
+        // ==================================================
+        // Làm mới Session (chống Session Fixation)
+        // ==================================================
+        HttpSession oldSession = request.getSession(false);
+
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+
+        // ==================================================
+        // Tạo Session mới
+        // ==================================================
+        HttpSession session = request.getSession(true);
+
+        session.setMaxInactiveInterval(5 * 60);
+
+        // Lưu dữ liệu phục vụ VerifyOTPServlet
+        session.setAttribute("resetUser", user);
+
+        session.setAttribute("otp", otp);
+
+        session.setAttribute("otpEmail", email);
+
+        session.setAttribute("otpType", "FORGOT_PASSWORD");
+
+        session.setAttribute("otpExpireTime", expireTime);
+
+        session.setAttribute("otpCreateTime",
+                System.currentTimeMillis());
+
+        session.setAttribute("otpRetry", 0);
+
+        session.setAttribute("otpResend", 0);
+
+        // Sang trang nhập OTP
+        response.sendRedirect(
+                request.getContextPath() + "/verify-otp");
+    }
+
+    private void forward(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.getRequestDispatcher(FORGOT_VIEW)
+                .forward(request, response);
+    }
 }

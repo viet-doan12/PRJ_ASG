@@ -28,9 +28,9 @@ public class RegisterServlet extends HttpServlet {
 
         HttpSession session = request.getSession(false);
 
-        // Đã đăng nhập thành viên rồi thì không cho phép quay lại trang đăng ký nữa
+        // Nếu đã đăng nhập thì không cho đăng ký nữa (Đã giữ nguyên định hướng /home của bạn)
         if (session != null && session.getAttribute("user") != null) {
-            response.sendRedirect(request.getContextPath() + "/homepage");
+            response.sendRedirect(request.getContextPath() + "/home");
             return;
         }
 
@@ -41,7 +41,6 @@ public class RegisterServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // (Đã bỏ dòng setCharacterEncoding thừa do EncodingFilter đã lo)
         String fullName = request.getParameter("fullName");
         String email = request.getParameter("email");
         String phone = request.getParameter("phone");
@@ -49,21 +48,21 @@ public class RegisterServlet extends HttpServlet {
         String password = request.getParameter("password");
         String confirmPassword = request.getParameter("confirmPassword");
 
-        // Trim dữ liệu an toàn
-        fullName = (fullName == null) ? "" : fullName.trim();
-        email = (email == null) ? "" : email.trim();
-        phone = (phone == null) ? "" : phone.trim();
-        address = (address == null) ? "" : address.trim();
+        // Trim dữ liệu
+        fullName = fullName == null ? "" : fullName.trim();
+        email = email == null ? "" : email.trim();
+        phone = phone == null ? "" : phone.trim();
+        address = address == null ? "" : address.trim();
 
-        // Đồng bộ ném trả dữ liệu cũ về form để người dùng không phải gõ lại nếu lỗi
+        // Giữ lại dữ liệu khi có lỗi
         request.setAttribute("fullName", fullName);
         request.setAttribute("email", email);
         request.setAttribute("phone", phone);
         request.setAttribute("address", address);
 
-        // ===========================
-        // Nghiệp vụ Validate dữ liệu
-        // ===========================
+        // ==========================
+        // Validate
+        // ==========================
         if (!ValidationUtil.isValidFullName(fullName)) {
             request.setAttribute("error", "Họ tên phải từ 2 đến 100 ký tự.");
             forward(request, response);
@@ -83,7 +82,7 @@ public class RegisterServlet extends HttpServlet {
         }
 
         if (!ValidationUtil.isValidPassword(password)) {
-            request.setAttribute("error", "Mật khẩu phải có ít nhất 6 ký tự.");
+            request.setAttribute("error", "Mật khẩu phải có ít nhất 6 ký tự, gồm chữ và số.");
             forward(request, response);
             return;
         }
@@ -96,65 +95,81 @@ public class RegisterServlet extends HttpServlet {
 
         UserDAO userDAO = new UserDAO();
         if (userDAO.isEmailExists(email)) {
-            request.setAttribute("error", "Email đã tồn tại hệ thống.");
+            request.setAttribute("error", "Email đã được đăng ký.");
             forward(request, response);
             return;
         }
 
-        // Lấy thông tin nhóm quyền khách hàng mặc định
+        // ==========================
+        // Lấy Role CUSTOMER
+        // ==========================
         RoleDAO roleDAO = new RoleDAO();
         Role customerRole = roleDAO.getRoleByName(RoleConstants.CUSTOMER);
 
         if (customerRole == null) {
-            request.setAttribute("error", "Lỗi hệ thống: Nhóm quyền CUSTOMER chưa được khởi tạo.");
+            request.setAttribute("error", "Không tìm thấy Role CUSTOMER.");
             forward(request, response);
             return;
         }
 
-        // Khởi tạo đối tượng User tạm thời
+        // ==========================
+        // Tạo User tạm
+        // ==========================
         User newUser = new User();
         newUser.setFullName(fullName);
         newUser.setEmail(email);
         newUser.setPhone(phone);
         newUser.setAddress(address);
-        newUser.setPassword(ValidationUtil.hashPassword(password)); // Mã hóa mật khẩu
+        newUser.setPassword(ValidationUtil.hashPassword(password)); // Hash Password
         newUser.setRoleID(customerRole.getRoleID());
         newUser.setStatus(true);
 
-        // Sinh mã OTP và thời gian hết hạn
+        // ==========================
+        // Sinh OTP
+        // ==========================
         String otp = OTPUtil.generateOTP();
         long expireTime = OTPUtil.getExpireTime();
 
-        // Tiến hành gửi Mail kích hoạt
+        // ==========================
+        // Gửi Email
+        // ==========================
         try {
             EmailUtil.sendOTP(email, otp);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            request.setAttribute("error", "Không thể gửi Email xác nhận. Vui lòng kiểm tra lại cấu hình mail.");
+        } catch (MessagingException ex) {
+            ex.printStackTrace();
+            request.setAttribute("error", "Không thể gửi Email xác nhận. Vui lòng thử lại sau.");
             forward(request, response);
             return;
         }
 
         // ==========================================================
-// Làm mới Session để tránh dùng lại OTP cũ
-// ==========================================================
+        // XÓA SESSION CŨ: Triệt tiêu hoàn toàn rủi ro Session Fixation
+        // ==========================================================
         HttpSession oldSession = request.getSession(false);
-
         if (oldSession != null) {
             oldSession.invalidate();
         }
 
-// ==========================================================
-// Tạo Session mới
-// ==========================================================
+        // ==========================================================
+        // Khởi tạo một Session hoàn toàn mới tinh sạch sẽ
+        // ==========================================================
         HttpSession session = request.getSession(true);
+
+        // Session OTP tồn tại tối đa 5 phút
+        session.setMaxInactiveInterval(5 * 60);
 
         session.setAttribute("tempUser", newUser);
         session.setAttribute("otp", otp);
+        session.setAttribute("otpEmail", email);
+        session.setAttribute("otpType", "REGISTER");
         session.setAttribute("otpExpireTime", expireTime);
+        session.setAttribute("otpCreateTime", System.currentTimeMillis());
         session.setAttribute("otpRetry", 0);
+        session.setAttribute("otpResend", 0);
 
-        // Chuyển hướng sang trang xác thực mã
+        // ==========================
+        // Sang trang Verify OTP
+        // ==========================
         response.sendRedirect(request.getContextPath() + "/verify-otp");
     }
 
