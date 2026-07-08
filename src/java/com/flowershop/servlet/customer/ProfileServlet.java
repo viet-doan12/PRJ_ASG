@@ -1,83 +1,310 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package com.flowershop.servlet.customer;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import com.flowershop.dao.UserDAO;
+import com.flowershop.model.User;
+import com.flowershop.util.ValidationUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
-/**
- *
- * @author ADMIN
- */
-@WebServlet(name="ProfileServlet", urlPatterns={"/profile"})
+import java.io.IOException;
+
+@WebServlet(name = "ProfileServlet", urlPatterns = {"/profile"})
 public class ProfileServlet extends HttpServlet {
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet ProfileServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet ProfileServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
+
+    private static final String PROFILE_PAGE
+            = "/WEB-INF/jsp/customer/profile.jsp";
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // Không cache trang Profile
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null || session.getAttribute("user") == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
         }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
+        User sessionUser = (User) session.getAttribute("user");
 
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
+        UserDAO dao = new UserDAO();
+        User liveUser = dao.getUserById(sessionUser.getUserID());
+
+        // Kiểm tra tài khoản còn tồn tại hay bị khóa
+        if (liveUser == null || !liveUser.isStatus()) {
+            session.invalidate();
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login?error=account_locked");
+            return;
+        }
+
+        // Luôn đồng bộ User mới nhất từ Database
+        session.setAttribute("user", liveUser);
+
+        // Load Flash Message
+        loadFlashMessage(session, request);
+
+        request.getRequestDispatcher(PROFILE_PAGE)
+                .forward(request, response);
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
     @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
+    protected void doPost(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null || session.getAttribute("user") == null) {
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        User sessionUser = (User) session.getAttribute("user");
+
+        UserDAO dao = new UserDAO();
+        User liveUser = dao.getUserById(sessionUser.getUserID());
+
+        if (liveUser == null || !liveUser.isStatus()) {
+            session.invalidate();
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login?error=account_locked");
+            return;
+        }
+
+        String action = request.getParameter("action");
+
+        if ("updateInfo".equals(action)) {
+
+            updateProfile(
+                    request,
+                    session,
+                    liveUser,
+                    dao);
+
+        } else if ("changePassword".equals(action)) {
+
+            changePassword(
+                    request,
+                    session,
+                    liveUser,
+                    dao);
+        }
+
+        // PRG Pattern
+        response.sendRedirect(request.getContextPath() + "/profile");
+    }
+
+    /**
+     * ========================================================== UPDATE PROFILE
+     * ==========================================================
+     */
+    private void updateProfile(HttpServletRequest request,
+            HttpSession session,
+            User user,
+            UserDAO dao) {
+
+        String fullName = request.getParameter("fullName");
+        String phone = request.getParameter("phone");
+        String address = request.getParameter("address");
+
+        fullName = fullName == null ? "" : fullName.trim();
+        phone = phone == null ? "" : phone.trim();
+        address = address == null ? "" : address.trim();
+
+        if (!ValidationUtil.isValidFullName(fullName)) {
+            session.setAttribute("session_error",
+                    "Họ tên phải từ 2 đến 100 ký tự.");
+            saveForm(session, fullName, phone, address);
+            return;
+        }
+
+        if (!phone.isEmpty()
+                && !ValidationUtil.isValidPhone(phone)) {
+
+            session.setAttribute("session_error",
+                    "Số điện thoại không hợp lệ.");
+
+            saveForm(session, fullName, phone, address);
+            return;
+        }
+
+        user.setFullName(fullName);
+        user.setPhone(phone);
+        user.setAddress(address);
+
+        if (dao.updateProfile(user)) {
+
+            // Đọc lại dữ liệu mới nhất từ Database
+            User updatedUser = dao.getUserById(user.getUserID());
+
+            if (updatedUser != null) {
+                session.setAttribute("user", updatedUser);
+            }
+
+            session.setAttribute(
+                    "session_message",
+                    "Cập nhật thông tin thành công.");
+
+        } else {
+
+            session.setAttribute(
+                    "session_error",
+                    "Không thể cập nhật thông tin.");
+
+            saveForm(session, fullName, phone, address);
+        }
+    }
+
+    /**
+     * ========================================================== CHANGE
+     * PASSWORD ==========================================================
+     */
+    private void changePassword(HttpServletRequest request,
+            HttpSession session,
+            User user,
+            UserDAO dao) {
+
+        String oldPassword = request.getParameter("oldPassword");
+        String newPassword = request.getParameter("newPassword");
+        String confirmPassword = request.getParameter("confirmPassword");
+
+        oldPassword = oldPassword == null ? "" : oldPassword.trim();
+        newPassword = newPassword == null ? "" : newPassword.trim();
+        confirmPassword = confirmPassword == null ? "" : confirmPassword.trim();
+
+        if (ValidationUtil.isEmpty(oldPassword)) {
+
+            session.setAttribute(
+                    "session_error",
+                    "Vui lòng nhập mật khẩu hiện tại.");
+
+            return;
+        }
+
+        if (!ValidationUtil.matchesPassword(
+                oldPassword,
+                user.getPassword())) {
+
+            session.setAttribute(
+                    "session_error",
+                    "Mật khẩu hiện tại không đúng.");
+
+            return;
+        }
+
+        if (!ValidationUtil.isValidPassword(newPassword)) {
+
+            session.setAttribute(
+                    "session_error",
+                    "Mật khẩu mới phải có ít nhất 6 ký tự và gồm chữ, số.");
+
+            return;
+        }
+
+        if (oldPassword.equals(newPassword)) {
+
+            session.setAttribute(
+                    "session_error",
+                    "Mật khẩu mới phải khác mật khẩu cũ.");
+
+            return;
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+
+            session.setAttribute(
+                    "session_error",
+                    "Xác nhận mật khẩu không khớp.");
+
+            return;
+        }
+
+        String hashPassword
+                = ValidationUtil.hashPassword(newPassword);
+
+        if (dao.updatePassword(
+                user.getUserID(),
+                hashPassword)) {
+
+            // Đồng bộ Password mới
+            User updatedUser
+                    = dao.getUserById(user.getUserID());
+
+            if (updatedUser != null) {
+                session.setAttribute("user", updatedUser);
+            }
+
+            session.setAttribute(
+                    "session_message",
+                    "Đổi mật khẩu thành công.");
+
+        } else {
+
+            session.setAttribute(
+                    "session_error",
+                    "Không thể đổi mật khẩu.");
+        }
+    }
+
+    /**
+     * ========================================================== LOAD FLASH
+     * MESSAGE ==========================================================
+     */
+    private void loadFlashMessage(HttpSession session,
+            HttpServletRequest request) {
+
+        Object message = session.getAttribute("session_message");
+        Object error = session.getAttribute("session_error");
+
+        if (message != null) {
+            request.setAttribute("message", message);
+            session.removeAttribute("session_message");
+        }
+
+        if (error != null) {
+            request.setAttribute("error", error);
+            session.removeAttribute("session_error");
+
+            // Khôi phục dữ liệu người dùng vừa nhập khi validate lỗi
+            request.setAttribute("tmpFullName",
+                    session.getAttribute("edit_fullName"));
+            request.setAttribute("tmpPhone",
+                    session.getAttribute("edit_phone"));
+            request.setAttribute("tmpAddress",
+                    session.getAttribute("edit_address"));
+
+            session.removeAttribute("edit_fullName");
+            session.removeAttribute("edit_phone");
+            session.removeAttribute("edit_address");
+        }
+    }
+
+    /**
+     * ========================================================== SAVE FORM
+     * ========================================================== Lưu dữ liệu
+     * form vào Session để hiển thị lại sau khi redirect (PRG Pattern).
+     */
+    private void saveForm(HttpSession session,
+            String fullName,
+            String phone,
+            String address) {
+
+        session.setAttribute("edit_fullName", fullName);
+        session.setAttribute("edit_phone", phone);
+        session.setAttribute("edit_address", address);
+    }
 
 }

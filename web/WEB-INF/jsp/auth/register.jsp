@@ -1,17 +1,39 @@
-<%-- 
-    Document   : register
-    Created on : Jul 4, 2026, 7:36:37 PM
-    Author     : ADMIN
---%>
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>JSP Page</title>
-    </head>
-    <body>
-        <h1>Hello World!</h1>
-    </body>
+<head>
+    <title>Register</title>
+</head>
+<body>
+
+<form action="${pageContext.request.contextPath}/register" method="post">
+
+    Full Name
+    <input type="text" name="fullName"><br><br>
+
+    Email
+    <input type="email" name="email"><br><br>
+
+    Phone
+    <input type="text" name="phone"><br><br>
+
+    Address
+    <input type="text" name="address"><br><br>
+
+    Password
+    <input type="password" name="password"><br><br>
+
+    Confirm Password
+    <input type="password" name="confirmPassword"><br><br>
+
+    <button type="submit">
+        Register
+    </button>
+
+</form>
+
+${error}
+
+</body>
 </html>
