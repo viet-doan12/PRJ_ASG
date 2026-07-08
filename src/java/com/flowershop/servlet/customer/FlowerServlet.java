@@ -1,12 +1,17 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package com.flowershop.servlet.customer;
 
+import com.flowershop.dao.CategoryDAO;
+import com.flowershop.dao.FlowerDAO;
+import com.flowershop.dao.ReviewDAO;
+import com.flowershop.dao.UserDAO;
+import com.flowershop.model.Category;
+import com.flowershop.model.Flower;
+import com.flowershop.model.Review;
+import com.flowershop.model.User;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,70 +19,77 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
+ * Customer-facing servlet: displays a single flower's details and its reviews.
  *
  * @author ADMIN
  */
-@WebServlet(name="FlowerServlet", urlPatterns={"/flowers"})
+@WebServlet(name = "FlowerServlet", urlPatterns = {"/flower"})
 public class FlowerServlet extends HttpServlet {
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet FlowerServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet FlowerServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
+    private FlowerDAO flowerDAO;
+    private CategoryDAO categoryDAO;
+    private ReviewDAO reviewDAO;
+    private UserDAO userDAO;
 
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
+    public void init() throws ServletException {
+        flowerDAO = new FlowerDAO();
+        categoryDAO = new CategoryDAO();
+        reviewDAO = new ReviewDAO();
+        userDAO = new UserDAO();
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.trim().isEmpty()) {
+            response.sendRedirect(request.getContextPath() + "/home");
+            return;
+        }
+
+        try {
+            int flowerID = Integer.parseInt(idParam);
+
+            // ---- Flower details ----
+            Flower flower = flowerDAO.getFlowerById(flowerID);
+            if (flower == null || !flower.isStatus()) {
+                // not found, or deactivated by admin - don't show it
+                response.sendRedirect(request.getContextPath() + "/home?msg=flowerNotFound");
+                return;
+            }
+            request.setAttribute("flower", flower);
+
+            // ---- Category (for breadcrumb / related products) ----
+            Category category = categoryDAO.getCategoryById(flower.getCategoryID());
+            request.setAttribute("category", category);
+
+            // ---- Reviews ----
+            List<Review> reviews = reviewDAO.getReviewsByFlowerId(flowerID);
+            request.setAttribute("reviewList", reviews);
+            request.setAttribute("averageRating", reviewDAO.getAverageRating(flowerID));
+            request.setAttribute("reviewCount", reviewDAO.getReviewCount(flowerID));
+
+            // ---- Reviewer names (avoid calling DB once per review) ----
+            Map<Integer, String> reviewerNames = new HashMap<>();
+            for (Review r : reviews) {
+                if (!reviewerNames.containsKey(r.getUserID())) {
+                    User u = userDAO.getUserById(r.getUserID());
+                    reviewerNames.put(r.getUserID(), (u != null) ? u.getFullName() : "Anonymous");
+                }
+            }
+            request.setAttribute("reviewerNames", reviewerNames);
+
+            request.getRequestDispatcher("/customer/flowerDetail.jsp").forward(request, response);
+
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/home?msg=invalidId");
+        }
+    }
+
     @Override
     public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+        return "Customer servlet for viewing flower details and reviews";
+    }
 }
