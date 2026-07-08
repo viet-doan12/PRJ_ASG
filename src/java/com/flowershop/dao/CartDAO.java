@@ -1,64 +1,125 @@
 package com.flowershop.dao;
 
+import com.flowershop.model.CartItem;
+import com.flowershop.model.Flower;
 import com.flowershop.util.DBContext;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-// Giả định bạn có một lớp Model tên là CartItem hoặc Cart để chứa dữ liệu.
-// Nếu leader đặt tên khác (ví dụ: CartModel), bạn hãy sửa tên class này lại cho khớp nhé.
-import com.flowershop.model.CartItem; 
-
+/**
+ * Quản lý các thao tác dữ liệu liên quan đến Giỏ hàng (Bảng Carts và CartItems)
+ * Kế thừa trực tiếp biến 'connection' từ DBContext
+ */
 public class CartDAO extends DBContext {
 
-    // 1. LẤY DANH SÁCH SẢN PHẨM TRONG GIỎ HÀNG CỦA MỘT USER
-    public List<CartItem> getCartByUserId(int userID) {
-        List<CartItem> list = new ArrayList<>();
-        String sql = "SELECT * FROM Cart WHERE UserID = ?";
+    // 0. LẤY DANH SÁCH SẢN PHẨM TRONG GIỎ HÀNG (JOIN với bảng Flowers)
+    public List<CartItem> getCartItemsFromDB(int cartID) {
+        List<CartItem> cartItems = new ArrayList<>();
+        String sql = "SELECT ci.FlowerID, ci.Quantity, "
+                + "f.FlowerName, f.Description, f.Price, f.StockQuantity, "
+                + "f.Image, f.CategoryID, f.Status, f.CreatedDate, f.UpdatedDate "
+                + "FROM CartItems ci "
+                + "JOIN Flowers f ON ci.FlowerID = f.FlowerID "
+                + "WHERE ci.CartID = ?";
+
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userID);
+            ps.setInt(1, cartID);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    CartItem item = new CartItem();
-                    // Giả định các hàm set/get theo cấu trúc phổ biến của Model
-                    item.setCartID(rs.getInt("CartID"));
-                    item.setUserID(rs.getInt("UserID"));
-                    item.setFlowerID(rs.getInt("FlowerID"));
-                    item.setQuantity(rs.getInt("Quantity"));
-                    list.add(item);
+                    Flower flower = new Flower();
+                    flower.setFlowerID(rs.getInt("FlowerID"));
+                    flower.setFlowerName(rs.getString("FlowerName"));
+                    flower.setDescription(rs.getString("Description"));
+                    flower.setPrice(rs.getBigDecimal("Price"));
+                    flower.setStockQuantity(rs.getInt("StockQuantity"));
+                    flower.setImage(rs.getString("Image"));
+                    flower.setCategoryID(rs.getInt("CategoryID"));
+                    flower.setStatus(rs.getBoolean("Status"));
+                    flower.setCreatedDate(rs.getTimestamp("CreatedDate"));
+                    flower.setUpdatedDate(rs.getTimestamp("UpdatedDate"));
+
+                    int quantity = rs.getInt("Quantity");
+
+                    cartItems.add(new CartItem(flower, quantity));
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return list;
+        return cartItems;
     }
 
-    // 2. THÊM SẢN PHẨM VÀO GIỎ HÀNG (Hoặc tăng số lượng nếu sản phẩm đã có sẵn)
-    public boolean addToCart(int userID, int flowerID, int quantity) {
-        // Kiểm tra xem bông hoa này đã có trong giỏ hàng của user chưa
-        String checkSql = "SELECT Quantity FROM Cart WHERE UserID = ? AND FlowerID = ?";
-        String insertSql = "INSERT INTO Cart (UserID, FlowerID, Quantity) VALUES (?, ?, ?)";
-        String updateSql = "UPDATE Cart SET Quantity = Quantity + ? WHERE UserID = ? AND FlowerID = ?";
+    // 0.1 ĐẾM TỔNG SỐ LƯỢNG SẢN PHẨM TRONG GIỎ (hiển thị badge trên header, nếu cần)
+    public int countCartItems(int cartID) {
+        String sql = "SELECT ISNULL(SUM(Quantity), 0) AS Total FROM CartItems WHERE CartID = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, cartID);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("Total");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // 1. LẤY CART_ID CỦA USER (Tự động tạo mới nếu User chưa có giỏ hàng)
+    public int getCartIDByUserID(int userID) {
+        String selectSQL = "SELECT CartID FROM Carts WHERE UserID = ?";
+        String insertSQL = "INSERT INTO Carts (UserID, CreatedDate) VALUES (?, GETDATE())";
+
+        try (PreparedStatement psSelect = connection.prepareStatement(selectSQL)) {
+            psSelect.setInt(1, userID);
+            try (ResultSet rs = psSelect.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("CartID");
+                }
+            }
+
+            try (PreparedStatement psInsert = connection.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS)) {
+                psInsert.setInt(1, userID);
+                int affectedRows = psInsert.executeUpdate();
+                if (affectedRows > 0) {
+                    try (ResultSet rsKey = psInsert.getGeneratedKeys()) {
+                        if (rsKey.next()) {
+                            return rsKey.getInt(1);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    // 2. THÊM SẢN PHẨM VÀO GIỎ HÀNG (Cộng dồn số lượng nếu đã tồn tại)
+    public boolean addItemToCart(int cartID, int flowerID, int quantity) {
+        String checkSQL = "SELECT Quantity FROM CartItems WHERE CartID = ? AND FlowerID = ?";
+        String updateSQL = "UPDATE CartItems SET Quantity = Quantity + ? WHERE CartID = ? AND FlowerID = ?";
+        String insertSQL = "INSERT INTO CartItems (CartID, FlowerID, Quantity) VALUES (?, ?, ?)";
 
         try {
-            // Kiểm tra trước
-            try (PreparedStatement psCheck = connection.prepareStatement(checkSql)) {
-                psCheck.setInt(1, userID);
+            try (PreparedStatement psCheck = connection.prepareStatement(checkSQL)) {
+                psCheck.setInt(1, cartID);
                 psCheck.setInt(2, flowerID);
                 try (ResultSet rs = psCheck.executeQuery()) {
                     if (rs.next()) {
-                        // Nếu đã có mặt trong giỏ, tiến hành cộng dồn số lượng (Update)
-                        try (PreparedStatement psUpdate = connection.prepareStatement(updateSql)) {
+                        try (PreparedStatement psUpdate = connection.prepareStatement(updateSQL)) {
                             psUpdate.setInt(1, quantity);
-                            psUpdate.setInt(2, userID);
+                            psUpdate.setInt(2, cartID);
                             psUpdate.setInt(3, flowerID);
                             return psUpdate.executeUpdate() > 0;
                         }
                     } else {
-                        // Nếu chưa có, tạo mới một dòng trong giỏ hàng (Insert)
-                        try (PreparedStatement psInsert = connection.prepareStatement(insertSql)) {
-                            psInsert.setInt(1, userID);
+                        try (PreparedStatement psInsert = connection.prepareStatement(insertSQL)) {
+                            psInsert.setInt(1, cartID);
                             psInsert.setInt(2, flowerID);
                             psInsert.setInt(3, quantity);
                             return psInsert.executeUpdate() > 0;
@@ -72,12 +133,12 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // 3. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM (Khi khách thay đổi số lượng ở trang giỏ hàng)
-    public boolean updateQuantity(int userID, int flowerID, int newQuantity) {
-        String sql = "UPDATE Cart SET Quantity = ? WHERE UserID = ? AND FlowerID = ?";
+    // 3. CẬP NHẬT SỐ LƯỢNG MỚI TRONG GIỎ HÀNG
+    public boolean updateCartItemQuantity(int cartID, int flowerID, int newQuantity) {
+        String sql = "UPDATE CartItems SET Quantity = ? WHERE CartID = ? AND FlowerID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, newQuantity);
-            ps.setInt(2, userID);
+            ps.setInt(2, cartID);
             ps.setInt(3, flowerID);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -86,11 +147,11 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // 4. XÓA MỘT SẢN PHẨM KHỎI GIỎ HÀNG (Khi bấm nút "Xóa" hoặc Icon thùng rác)
-    public boolean removeFromCart(int userID, int flowerID) {
-        String sql = "DELETE FROM Cart WHERE UserID = ? AND FlowerID = ?";
+    // 4. XÓA MỘT SẢN PHẨM KHỎI GIỎ HÀNG
+    public boolean deleteCartItem(int cartID, int flowerID) {
+        String sql = "DELETE FROM CartItems WHERE CartID = ? AND FlowerID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userID);
+            ps.setInt(1, cartID);
             ps.setInt(2, flowerID);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -99,11 +160,11 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // 5. XÓA SẠCH GIỎ HÀNG (Cực kỳ quan trọng: Dùng để dọn giỏ ngay sau khi khách bấm "Thanh toán thành công")
-    public boolean clearCart(int userID) {
-        String sql = "DELETE FROM Cart WHERE UserID = ?";
+    // 5. XÓA SẠCH GIỎ HÀNG (Sử dụng sau khi Checkout đặt hàng thành công)
+    public boolean clearCart(int cartID) {
+        String sql = "DELETE FROM CartItems WHERE CartID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userID);
+            ps.setInt(1, cartID);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();

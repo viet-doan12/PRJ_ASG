@@ -1,83 +1,218 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package com.flowershop.servlet.customer;
 
+import com.flowershop.dao.CartDAO;
+import com.flowershop.dao.FlowerDAO;
+import com.flowershop.model.CartItem;
+import com.flowershop.model.Flower;
+import com.flowershop.model.User;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 /**
- *
- * @author ADMIN
+ * Controller xử lý luồng nghiệp vụ giỏ hàng của Customer mua hoa
+ * Các action hỗ trợ: view (mặc định), add, update, delete, clear
  */
-@WebServlet(name="CartServlet", urlPatterns={"/cart"})
+@WebServlet(name = "CartServlet", urlPatterns = {"/cart"})
 public class CartServlet extends HttpServlet {
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet CartServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet CartServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        response.setContentType("text/html;charset=UTF-8");
+        request.setCharacterEncoding("UTF-8");
+
+        HttpSession session = request.getSession();
+
+        // 1. Kiểm tra quyền đăng nhập của Khách hàng từ Session
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            // Lưu lại URL hiện tại để sau khi login xong có thể quay lại giỏ hàng
+            session.setAttribute("redirectAfterLogin", request.getContextPath() + "/cart");
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
+        }
+
+        String action = request.getParameter("action");
+        if (action == null || action.isBlank()) {
+            action = "view";
+        }
+
+        CartDAO cartDAO = new CartDAO();
+        FlowerDAO flowerDAO = new FlowerDAO();
+        int cartID = cartDAO.getCartIDByUserID(user.getUserID());
+
+        if (cartID == -1) {
+            session.setAttribute("errorMessage", "Không thể khởi tạo giỏ hàng. Vui lòng thử lại.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+            return;
+        }
+
+        try {
+            switch (action) {
+                case "add":
+                    handleAdd(request, response, cartDAO, flowerDAO, session, cartID);
+                    break;
+
+                case "update":
+                    handleUpdate(request, response, cartDAO, flowerDAO, session, cartID);
+                    break;
+
+                case "delete":
+                    handleDelete(request, response, cartDAO, session, cartID);
+                    break;
+
+                case "clear":
+                    cartDAO.clearCart(cartID);
+                    session.setAttribute("successMessage", "Đã xóa toàn bộ giỏ hàng.");
+                    response.sendRedirect(request.getContextPath() + "/cart?action=view");
+                    break;
+
+                case "view":
+                default:
+                    showCart(request, response, cartDAO, session, cartID);
+                    break;
+            }
+        } catch (NumberFormatException e) {
+            session.setAttribute("errorMessage", "Dữ liệu không hợp lệ.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/jsp/500.jsp");
+        }
+    }
+
+    // Thêm sản phẩm vào giỏ hàng (có kiểm tra tồn kho)
+    private void handleAdd(HttpServletRequest request, HttpServletResponse response,
+            CartDAO cartDAO, FlowerDAO flowerDAO, HttpSession session, int cartID)
+            throws IOException {
+
+        String flowerIDParam = request.getParameter("flowerID");
+        if (flowerIDParam == null || flowerIDParam.isBlank()) {
+            session.setAttribute("errorMessage", "Thiếu thông tin sản phẩm.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+            return;
+        }
+
+        int flowerID = Integer.parseInt(flowerIDParam);
+        int quantityToAdd = 1;
+        String qtyParam = request.getParameter("quantity");
+        if (qtyParam != null && !qtyParam.isBlank()) {
+            quantityToAdd = Integer.parseInt(qtyParam);
+        }
+
+        if (quantityToAdd <= 0) {
+            session.setAttribute("errorMessage", "Số lượng phải lớn hơn 0.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+            return;
+        }
+
+        // Kiểm tra sản phẩm tồn tại và còn hàng
+        Flower flower = flowerDAO.getFlowerById(flowerID);
+        if (flower == null || !flower.isStatus()) {
+            session.setAttribute("errorMessage", "Sản phẩm không tồn tại hoặc đã ngừng bán.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+            return;
+        }
+
+        // Số lượng đã có sẵn trong giỏ (nếu có) + số lượng thêm mới không được vượt tồn kho
+        List<CartItem> currentCart = cartDAO.getCartItemsFromDB(cartID);
+        int currentQtyInCart = 0;
+        for (CartItem item : currentCart) {
+            if (item.getFlower().getFlowerID() == flowerID) {
+                currentQtyInCart = item.getQuantity();
+                break;
+            }
+        }
+
+        if (currentQtyInCart + quantityToAdd > flower.getStockQuantity()) {
+            session.setAttribute("errorMessage",
+                    "Số lượng vượt quá tồn kho. Chỉ còn " + flower.getStockQuantity() + " sản phẩm.");
+            response.sendRedirect(request.getContextPath() + "/cart?action=view");
+            return;
+        }
+
+        cartDAO.addItemToCart(cartID, flowerID, quantityToAdd);
+        session.setAttribute("successMessage", "Đã thêm \"" + flower.getFlowerName() + "\" vào giỏ hàng.");
+        response.sendRedirect(request.getContextPath() + "/cart?action=view");
+    }
+
+    // Cập nhật số lượng sản phẩm trong giỏ hàng
+    private void handleUpdate(HttpServletRequest request, HttpServletResponse response,
+            CartDAO cartDAO, FlowerDAO flowerDAO, HttpSession session, int cartID)
+            throws IOException {
+
+        int updateID = Integer.parseInt(request.getParameter("flowerID"));
+        int newQuantity = Integer.parseInt(request.getParameter("quantity"));
+
+        if (newQuantity <= 0) {
+            cartDAO.deleteCartItem(cartID, updateID);
+            session.setAttribute("successMessage", "Đã xóa sản phẩm khỏi giỏ hàng.");
+        } else {
+            Flower flower = flowerDAO.getFlowerById(updateID);
+            if (flower != null && newQuantity > flower.getStockQuantity()) {
+                session.setAttribute("errorMessage",
+                        "Số lượng vượt quá tồn kho. Chỉ còn " + flower.getStockQuantity() + " sản phẩm.");
+            } else {
+                cartDAO.updateCartItemQuantity(cartID, updateID, newQuantity);
+                session.setAttribute("successMessage", "Đã cập nhật giỏ hàng.");
+            }
+        }
+        response.sendRedirect(request.getContextPath() + "/cart?action=view");
+    }
+
+    // Xóa một sản phẩm khỏi giỏ hàng
+    private void handleDelete(HttpServletRequest request, HttpServletResponse response,
+            CartDAO cartDAO, HttpSession session, int cartID)
+            throws IOException {
+
+        int deleteID = Integer.parseInt(request.getParameter("flowerID"));
+        cartDAO.deleteCartItem(cartID, deleteID);
+        session.setAttribute("successMessage", "Đã xóa sản phẩm khỏi giỏ hàng.");
+        response.sendRedirect(request.getContextPath() + "/cart?action=view");
+    }
+
+    // Hiển thị giỏ hàng
+    private void showCart(HttpServletRequest request, HttpServletResponse response,
+            CartDAO cartDAO, HttpSession session, int cartID)
+            throws ServletException, IOException {
+
+        List<CartItem> cartList = cartDAO.getCartItemsFromDB(cartID);
+
+        session.setAttribute("cart", cartList);
+        session.setAttribute("cartTotal", calculateTotal(cartList));
+
+        request.getRequestDispatcher("/WEB-INF/jsp/customer/cart.jsp").forward(request, response);
+    }
+
+    private BigDecimal calculateTotal(List<CartItem> cart) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (cart != null) {
+            for (CartItem item : cart) {
+                if (item.getFlower() != null) {
+                    BigDecimal price = item.getFlower().getPrice();
+                    BigDecimal qty = new BigDecimal(item.getQuantity());
+                    total = total.add(price.multiply(qty));
+                }
+            }
+        }
+        return total;
+    }
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
-
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+            throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
     @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        processRequest(request, response);
+    }
 }
