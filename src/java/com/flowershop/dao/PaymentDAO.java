@@ -93,13 +93,8 @@ public class PaymentDAO extends DBContext {
         payment.setPaymentMethod(rs.getString("PaymentMethod"));
         payment.setPaymentStatus(rs.getString("PaymentStatus"));
         payment.setTransactionCode(rs.getString("TransactionCode"));
-        
-        try {
-            Object timestampObj = rs.getTimestamp("PaymentDate");
-            payment.setPaymentDate((java.security.Timestamp) timestampObj);
-        } catch (Exception e) {
-            payment.setPaymentDate(null);
-        }
+        payment.setPaymentDate(rs.getTimestamp("PaymentDate"));
+
         return payment;
     }
 }

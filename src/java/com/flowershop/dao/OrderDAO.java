@@ -277,10 +277,81 @@ public class OrderDAO extends DBContext {
         return -1;
     }
 
+    // 13. TÌM KIẾM + LỌC TRẠNG THÁI + PHÂN TRANG (Dùng cho trang quản lý Admin)
+    public List<Order> searchOrders(String keyword, String status, int page, int pageSize) {
+        List<Order> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM Orders WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (ReceiverName LIKE ? OR ReceiverPhone LIKE ? OR CAST(OrderID AS VARCHAR) = ?) ");
+            params.add("%" + keyword.trim() + "%");
+            params.add("%" + keyword.trim() + "%");
+            params.add(keyword.trim());
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND Status = ? ");
+            params.add(status.trim());
+        }
+        sql.append("ORDER BY OrderDate DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            int idx = 1;
+            for (Object p : params) {
+                ps.setObject(idx++, p);
+            }
+            ps.setInt(idx++, (page - 1) * pageSize);
+            ps.setInt(idx, pageSize);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSetToOrder(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // 14. ĐẾM TỔNG SỐ ĐƠN HÀNG THEO ĐIỀU KIỆN TÌM KIẾM/LỌC (Phục vụ tính tổng số trang)
+    public int countSearchOrders(String keyword, String status) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM Orders WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (ReceiverName LIKE ? OR ReceiverPhone LIKE ? OR CAST(OrderID AS VARCHAR) = ?) ");
+            params.add("%" + keyword.trim() + "%");
+            params.add("%" + keyword.trim() + "%");
+            params.add(keyword.trim());
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            sql.append("AND Status = ? ");
+            params.add(status.trim());
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            int idx = 1;
+            for (Object p : params) {
+                ps.setObject(idx++, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     // MAPPING DATA từ ResultSet sang đối tượng Order
     private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
     Order order = new Order();
-    order.setOrderID(rs.get.setOrderDate(rs.getTimestamp("OrderDate"));
+    order.setOrderID(rs.getInt("OrderID"));
+    order.setUserID(rs.getInt("UserID"));
+    order.setOrderDate(rs.getTimestamp("OrderDate"));
     order.setReceiverName(rs.getString("ReceiverName"));
     order.setReceiverPhone(rs.getString("ReceiverPhone"));
     order.setShippingAddress(rs.getString("ShippingAddress"));

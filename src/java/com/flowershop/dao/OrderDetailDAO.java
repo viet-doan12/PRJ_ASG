@@ -21,7 +21,7 @@ public class OrderDetailDAO extends DBContext {
                     detail.setOrderID(rs.getInt("OrderID"));
                     detail.setFlowerID(rs.getInt("FlowerID"));
                     detail.setQuantity(rs.getInt("Quantity"));
-                    detail.setUnitPrice(rs.getBigDecimal("Price")); 
+                    detail.setUnitPrice(rs.getBigDecimal("UnitPrice")); 
                     list.add(detail);
                 }
             }
@@ -33,7 +33,7 @@ public class OrderDetailDAO extends DBContext {
 
     // 2. THÊM MỚI MỘT CHI TIẾT ĐƠN HÀNG
     public boolean insertOrderDetail(OrderDetail detail) {
-        String sql = "INSERT INTO OrderDetails (OrderID, FlowerID, Quantity, Price) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO OrderDetails (OrderID, FlowerID, Quantity, UnitPrice) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, detail.getOrderID());
             ps.setInt(2, detail.getFlowerID());
