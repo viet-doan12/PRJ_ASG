@@ -26,6 +26,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "FlowerServlet", urlPatterns = {"/flower"})
 public class FlowerServlet extends HttpServlet {
 
+    private static final String DETAIL_VIEW = "/WEB-INF/jsp/customer/flower-detail.jsp";
+
     private FlowerDAO flowerDAO;
     private CategoryDAO categoryDAO;
     private ReviewDAO reviewDAO;
@@ -52,26 +54,21 @@ public class FlowerServlet extends HttpServlet {
         try {
             int flowerID = Integer.parseInt(idParam);
 
-            // ---- Flower details ----
             Flower flower = flowerDAO.getFlowerById(flowerID);
             if (flower == null || !flower.isStatus()) {
-                // not found, or deactivated by admin - don't show it
                 response.sendRedirect(request.getContextPath() + "/home?msg=flowerNotFound");
                 return;
             }
             request.setAttribute("flower", flower);
 
-            // ---- Category (for breadcrumb / related products) ----
             Category category = categoryDAO.getCategoryById(flower.getCategoryID());
             request.setAttribute("category", category);
 
-            // ---- Reviews ----
             List<Review> reviews = reviewDAO.getReviewsByFlowerId(flowerID);
             request.setAttribute("reviewList", reviews);
             request.setAttribute("averageRating", reviewDAO.getAverageRating(flowerID));
             request.setAttribute("reviewCount", reviewDAO.getReviewCount(flowerID));
 
-            // ---- Reviewer names (avoid calling DB once per review) ----
             Map<Integer, String> reviewerNames = new HashMap<>();
             for (Review r : reviews) {
                 if (!reviewerNames.containsKey(r.getUserID())) {
@@ -81,7 +78,7 @@ public class FlowerServlet extends HttpServlet {
             }
             request.setAttribute("reviewerNames", reviewerNames);
 
-            request.getRequestDispatcher("/customer/flowerDetail.jsp").forward(request, response);
+            request.getRequestDispatcher(DETAIL_VIEW).forward(request, response);
 
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/home?msg=invalidId");
