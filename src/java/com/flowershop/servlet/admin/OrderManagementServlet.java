@@ -115,11 +115,12 @@ public class OrderManagementServlet extends HttpServlet {
 
         List<OrderDetail> detailList = orderDetailDAO.getOrderDetailsByOrderId(orderID);
 
-        // Lấy kèm thông tin tên hoa cho từng dòng chi tiết để hiển thị ở JSP
+        // Lấy kèm thông tin tên hoa + ảnh cho từng dòng chi tiết để hiển thị ở JSP
         for (OrderDetail d : detailList) {
             Flower flower = flowerDAO.getFlowerById(d.getFlowerID());
             if (flower != null) {
                 request.setAttribute("flowerName_" + d.getFlowerID(), flower.getFlowerName());
+                request.setAttribute("flowerImage_" + d.getFlowerID(), flower.getImage());
             }
         }
 

@@ -1,7 +1,12 @@
 package com.flowershop.servlet.customer;
 
+import com.flowershop.dao.FlowerDAO;
 import com.flowershop.dao.OrderDAO;
+import com.flowershop.dao.OrderDetailDAO;
+import com.flowershop.model.Flower;
 import com.flowershop.model.Order;
+import com.flowershop.model.OrderDetail;
+import com.flowershop.model.User;
 import java.io.IOException;
 import java.util.List;
 import jakarta.servlet.ServletException;
@@ -15,36 +20,80 @@ import jakarta.servlet.http.HttpSession;
 public class OrderHistoryServlet extends HttpServlet {
 
     private final OrderDAO orderDAO = new OrderDAO();
+    private final OrderDetailDAO orderDetailDAO = new OrderDetailDAO();
+    private final FlowerDAO flowerDAO = new FlowerDAO();
 
-    // HIỂN THỊ LỊCH SỬ ĐƠN HÀNG (GET)
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
         HttpSession session = request.getSession();
-        Object userObj = session.getAttribute("user");
+        User user = (User) session.getAttribute("user");
 
         // 1. Kiểm tra đăng nhập
-        if (userObj == null) {
-            response.sendRedirect("login.jsp");
+        if (user == null) {
+            session.setAttribute("redirectAfterLogin", request.getContextPath() + "/orders");
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
-        // 2. Lấy ID người dùng hiện tại (Thay bằng logic Model User thực tế của dự án nếu cần)
-        // int userID = ((User) userObj).getUserID();
-        int userID = 1; 
+        String action = request.getParameter("action");
 
-        // 3. Gọi DAO lấy danh sách đơn hàng đã đặt (Sắp xếp theo ngày mới nhất)
-        List<Order> orderList = orderDAO.getOrdersByUser(userID);
+        if ("detail".equals(action)) {
+            showOrderDetail(request, response, user);
+        } else {
+            showOrderHistory(request, response, user);
+        }
+    }
 
-        // 4. Đẩy dữ liệu sang trang JSP để hiển thị
+    // ================== DANH SÁCH ĐƠN HÀNG CỦA TÔI ==================
+    private void showOrderHistory(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        List<Order> orderList = orderDAO.getOrdersByUser(user.getUserID());
+
         request.setAttribute("orderList", orderList);
-        request.getRequestDispatcher("order-history.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/jsp/customer/order-history.jsp").forward(request, response);
+    }
+
+    // ================== CHI TIẾT 1 ĐƠN HÀNG CỦA TÔI ==================
+    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response, User user)
+            throws ServletException, IOException {
+
+        int orderID = parseIntSafe(request.getParameter("id"), -1);
+        Order order = orderID > 0 ? orderDAO.getOrderById(orderID) : null;
+
+        // Chỉ cho phép xem đơn hàng của chính mình
+        if (order == null || order.getUserID() != user.getUserID()) {
+            response.sendRedirect(request.getContextPath() + "/orders");
+            return;
+        }
+
+        List<OrderDetail> detailList = orderDetailDAO.getOrderDetailsByOrderId(orderID);
+        for (OrderDetail d : detailList) {
+            Flower flower = flowerDAO.getFlowerById(d.getFlowerID());
+            if (flower != null) {
+                request.setAttribute("flowerName_" + d.getFlowerID(), flower.getFlowerName());
+                request.setAttribute("flowerImage_" + d.getFlowerID(), flower.getImage());
+            }
+        }
+
+        request.setAttribute("order", order);
+        request.setAttribute("detailList", detailList);
+        request.getRequestDispatcher("/WEB-INF/jsp/customer/order-detail.jsp").forward(request, response);
+    }
+
+    private int parseIntSafe(String value, int defaultValue) {
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Nếu không xử lý các thao tác hủy đơn hay sửa đơn bằng POST ở đây thì gọi doGet
         doGet(request, response);
     }
 }
