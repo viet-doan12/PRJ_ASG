@@ -1,12 +1,15 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Servlet.java to edit this template
- */
-
 package com.flowershop.servlet.admin;
 
+import com.flowershop.dao.ReportDAO;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,70 +17,120 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- *
- * @author ADMIN
+ * Admin Dashboard — tổng quan metrics (Phạm Đức Minh).
  */
-@WebServlet(name="DashboardServlet", urlPatterns={"/admin/dashboard"})
+@WebServlet(name = "DashboardServlet", urlPatterns = {"/admin/dashboard"})
 public class DashboardServlet extends HttpServlet {
-   
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet DashboardServlet</title>");  
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet DashboardServlet at " + request.getContextPath () + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    } 
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
+    private ReportDAO reportDAO;
 
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
+    public void init() throws ServletException {
+        reportDAO = new ReportDAO();
     }
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        showDashboard(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        showDashboard(request, response);
+    }
+
+    private void showDashboard(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
+        int totalUsers = 0;
+        int activeUsers = 0;
+        int totalFlowers = 0;
+        int activeFlowers = 0;
+        int totalOrders = 0;
+        BigDecimal totalRevenue = BigDecimal.ZERO;
+        List<Map<String, Object>> topFlowers = new ArrayList<>();
+        List<Map<String, Object>> orderStatusSummary = new ArrayList<>();
+        List<Map<String, Object>> topCustomers = new ArrayList<>();
+
+        try {
+            totalUsers = reportDAO.countUsers();
+            activeUsers = reportDAO.countActiveUsers();
+            totalFlowers = reportDAO.countFlowers();
+            activeFlowers = reportDAO.countActiveFlowers();
+            totalOrders = reportDAO.countOrders();
+            totalRevenue = reportDAO.getTotalRevenue();
+            if (totalRevenue == null) {
+                totalRevenue = BigDecimal.ZERO;
+            }
+            topFlowers = reportDAO.getTopSellingFlowers(5);
+            if (topFlowers == null) {
+                topFlowers = new ArrayList<>();
+            }
+            orderStatusSummary = reportDAO.getOrderCountByStatus();
+            if (orderStatusSummary == null) {
+                orderStatusSummary = new ArrayList<>();
+            }
+            topCustomers = reportDAO.getTopCustomers(5);
+            if (topCustomers == null) {
+                topCustomers = new ArrayList<>();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Không thể tải dữ liệu thống kê. Vui lòng thử lại sau.");
+            totalRevenue = BigDecimal.ZERO;
+            topFlowers = new ArrayList<>();
+            orderStatusSummary = new ArrayList<>();
+            topCustomers = new ArrayList<>();
+        }
+
+        // Pre-format money fields for stable display in JSP
+        for (Map<String, Object> row : topFlowers) {
+            row.put("revenueDisplay", formatVnd(row.get("revenue")));
+        }
+        for (Map<String, Object> row : topCustomers) {
+            row.put("totalSpentDisplay", formatVnd(row.get("totalSpent")));
+        }
+
+        request.setAttribute("totalUsers", totalUsers);
+        request.setAttribute("activeUsers", activeUsers);
+        request.setAttribute("totalFlowers", totalFlowers);
+        request.setAttribute("activeFlowers", activeFlowers);
+        request.setAttribute("totalOrders", totalOrders);
+        request.setAttribute("totalRevenue", totalRevenue);
+        request.setAttribute("totalRevenueDisplay", formatVnd(totalRevenue));
+        request.setAttribute("topFlowers", topFlowers);
+        request.setAttribute("orderStatusSummary", orderStatusSummary);
+        request.setAttribute("topCustomers", topCustomers);
+
+        request.getRequestDispatcher("/WEB-INF/jsp/admin/dashboard.jsp").forward(request, response);
+    }
+
+    private String formatVnd(Object value) {
+        BigDecimal amount = BigDecimal.ZERO;
+        if (value instanceof BigDecimal) {
+            amount = (BigDecimal) value;
+        } else if (value instanceof Number) {
+            amount = BigDecimal.valueOf(((Number) value).doubleValue());
+        } else if (value != null) {
+            try {
+                amount = new BigDecimal(value.toString());
+            } catch (NumberFormatException ignored) {
+                amount = BigDecimal.ZERO;
+            }
+        }
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(',');
+        DecimalFormat df = new DecimalFormat("#,##0", symbols);
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        return df.format(amount.setScale(0, RoundingMode.HALF_UP));
+    }
+
     @Override
     public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold>
-
+        return "Admin Dashboard Servlet";
+    }
 }
