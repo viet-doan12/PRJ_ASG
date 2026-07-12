@@ -1,22 +1,22 @@
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%-- 
+    Document   : homepage
+    Author     : Group 6
+--%>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
-<!-- Nhúng Header dùng chung của nhóm -->
 <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
-<!-- CSS tùy chỉnh riêng cho phần Category (giống Flowercorner) -->
 <style>
-    /* Category Navigation Bar Styling (Replicating flowercorner.vn) */
     .category-nav-wrapper {
         background-color: #ffffff;
         position: sticky;
-        top: 56px; /* Doan's navbar height is roughly 56px, this keeps it sticky right below the main header */
+        top: 56px;
         z-index: 1020;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
         border-bottom: 1px solid #ebebeb;
     }
-    
     .category-list {
         display: flex;
         justify-content: center;
@@ -25,11 +25,6 @@
         padding: 0;
         flex-wrap: wrap;
     }
-    
-    .category-item {
-        position: relative;
-    }
-    
     .category-link {
         display: block;
         padding: 14px 20px;
@@ -41,64 +36,24 @@
         letter-spacing: 0.5px;
         transition: color 0.3s ease;
     }
-    
-    .category-link:hover {
-        color: #198754; /* Match bootstrap success green / brand color of Doan's header */
-    }
-    
-    /* Dropdown Icon effect */
-    .category-link i {
-        margin-left: 5px;
-        font-size: 11px;
-        transition: transform 0.3s;
-    }
-    
-    .category-link:hover i {
-        transform: rotate(180deg);
-    }
-    
-    /* Promotion Highlight (Red color) */
-    .promo-link {
-        color: #dc3545 !important;
-    }
-    .promo-link:hover {
-        color: #bd2130 !important;
-    }
-
-    /* Hero Banner mockup */
-    .hero-banner {
-        background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover;
-        height: 380px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        text-align: center;
-        margin-bottom: 40px;
-    }
-    
-    .hero-title {
-        font-size: 2.8rem;
-        font-weight: 700;
-        margin-bottom: 12px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    }
-    
-    .hero-subtitle {
-        font-size: 1.1rem;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
+    .category-link:hover { color: #198754; }
+    .category-link i { margin-left: 5px; font-size: 11px; transition: transform 0.3s; }
+    .category-link:hover i { transform: rotate(180deg); }
+    .promo-link { color: #dc3545 !important; }
+    .promo-link:hover { color: #bd2130 !important; }
+    .transition-hover { transition: all 0.3s ease; }
+    .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
+    .hover-success:hover { color: #198754 !important; }
 </style>
 
-<!-- THIẾT KẾ PHẦN CATEGORY THEO YÊU CẦU CỦA BẠN (GIỐNG FLOWER CORNER) -->
+<!-- CATEGORY NAV BAR -->
 <nav class="category-nav-wrapper">
     <div class="container">
         <ul class="category-list">
             <c:if test="${not empty categories}">
                 <c:forEach var="category" items="${categories}" varStatus="status">
                     <li class="category-item">
-                        <!-- Làm nổi bật danh mục cuối cùng bằng chữ đỏ giống "Giảm giá 30%" ở flowercorner -->
-                        <a href="${pageContext.request.contextPath}/home?categoryId=${category.categoryID}" 
+                        <a href="${pageContext.request.contextPath}/flowers?categoryID=${category.categoryID}"
                            class="category-link ${status.index == categories.size() - 1 ? 'promo-link' : ''}">
                             ${category.categoryName}
                             <c:if test="${status.index != categories.size() - 1}">
@@ -109,34 +64,134 @@
                 </c:forEach>
             </c:if>
             <c:if test="${empty categories}">
-                <li class="category-item"><a href="#" class="category-link">HOA SINH NHẬT <i class="bi bi-chevron-down"></i></a></li>
-                <li class="category-item"><a href="#" class="category-link">HOA KHAI TRƯƠNG <i class="bi bi-chevron-down"></i></a></li>
-                <li class="category-item"><a href="#" class="category-link">LAN HỒ ĐIỆP <i class="bi bi-chevron-down"></i></a></li>
-                <li class="category-item"><a href="#" class="category-link">CHỦ ĐỀ <i class="bi bi-chevron-down"></i></a></li>
-                <li class="category-item"><a href="#" class="category-link promo-link">GIẢM 30%</a></li>
+                <li class="category-item"><a href="${pageContext.request.contextPath}/flowers" class="category-link">Tất cả sản phẩm</a></li>
             </c:if>
         </ul>
     </div>
 </nav>
-<!-- KẾT THÚC PHẦN CATEGORY -->
 
-<!-- Hero Banner -->
-<section class="hero-banner">
-    <div>
-        <h1 class="hero-title">Trao Gửi Yêu Thương</h1>
-        <p class="hero-subtitle">Dịch vụ điện hoa tận nơi uy tín, chất lượng nhất</p>
+<!-- HERO CAROUSEL -->
+<div id="heroCarousel" class="carousel slide mb-5 shadow-sm" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
     </div>
-</section>
-
-<!-- Main Content Area -->
-<main class="container my-5">
-    <div class="row">
-        <div class="col-12 text-center">
-            <h2 class="mb-3 fw-bold">Sản Phẩm Nổi Bật</h2>
-            <p class="text-muted">Chọn một danh mục ở thanh menu phía trên để lọc sản phẩm.</p>
+    <div class="carousel-inner">
+        <div class="carousel-item active" style="height: 400px; background-color: #e8f5e9;">
+            <div class="container h-100 d-flex align-items-center justify-content-center text-center">
+                <div>
+                    <h1 class="display-4 fw-bold text-success mb-3">Trao Gửi Yêu Thương</h1>
+                    <p class="lead text-dark mb-4">Mẫu hoa thiết kế tinh tế, giao hàng hỏa tốc trong 2H</p>
+                    <a href="${pageContext.request.contextPath}/flowers" class="btn btn-success btn-lg rounded-pill px-5 shadow">Mua Hoa Ngay</a>
+                </div>
+            </div>
+        </div>
+        <div class="carousel-item" style="height: 400px; background-color: #fff3e0;">
+            <div class="container h-100 d-flex align-items-center justify-content-center text-center">
+                <div>
+                    <h1 class="display-4 fw-bold text-warning mb-3">Hoa Sinh Nhật Đẹp</h1>
+                    <p class="lead text-dark mb-4">Tặng kèm thiệp cao cấp & Banner thiết kế riêng</p>
+                    <a href="${pageContext.request.contextPath}/flowers" class="btn btn-warning text-white btn-lg rounded-pill px-5 shadow">Xem Mẫu</a>
+                </div>
+            </div>
         </div>
     </div>
-</main>
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(100%);"></span>
+        <span class="visually-hidden">Trước</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(100%);"></span>
+        <span class="visually-hidden">Sau</span>
+    </button>
+</div>
 
-<!-- Nhúng Footer dùng chung của nhóm -->
+<div class="container">
+    <!-- QUICK FEATURES -->
+    <div class="row text-center mb-5 g-4">
+        <div class="col-md-3 col-6">
+            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
+                <i class="bi bi-clock-history text-success mb-2" style="font-size: 2.5rem;"></i>
+                <h6 class="fw-bold">Giao Hỏa Tốc 2H</h6>
+                <p class="small text-muted mb-0">Nội thành TP.HCM, HN</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
+                <i class="bi bi-truck text-success mb-2" style="font-size: 2.5rem;"></i>
+                <h6 class="fw-bold">Freeship</h6>
+                <p class="small text-muted mb-0">Cho đơn hàng trên 500k</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
+                <i class="bi bi-card-text text-success mb-2" style="font-size: 2.5rem;"></i>
+                <h6 class="fw-bold">Tặng Thiệp Miễn Phí</h6>
+                <p class="small text-muted mb-0">Kèm theo mỗi đơn hàng</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
+                <i class="bi bi-flower1 text-success mb-2" style="font-size: 2.5rem;"></i>
+                <h6 class="fw-bold">Hoa Tươi 3 Ngày</h6>
+                <p class="small text-muted mb-0">Cam kết 100% tươi mới</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURED PRODUCTS -->
+    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-2">
+        <h3 class="fw-bold text-success mb-0">
+            <i class="bi bi-stars text-warning me-2"></i>Sản Phẩm Nổi Bật
+        </h3>
+        <a href="${pageContext.request.contextPath}/flowers" class="text-success text-decoration-none fw-medium">Xem tất cả &raquo;</a>
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4 mb-5">
+        <c:if test="${empty featuredFlowers}">
+            <div class="col-12 text-center text-muted w-100">
+                <p>Chưa có sản phẩm nổi bật nào.</p>
+            </div>
+        </c:if>
+
+        <c:forEach var="flower" items="${featuredFlowers}">
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0 product-card transition-hover position-relative">
+                    <span class="badge bg-danger position-absolute top-0 start-0 m-2 px-2 py-1 shadow-sm z-1" style="font-size: 0.8rem;">
+                        HOT
+                    </span>
+                    <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="overflow-hidden rounded-top">
+                        <img src="${pageContext.request.contextPath}/images/flowers/${flower.image}"
+                             class="card-img-top p-2"
+                             style="height: 260px; object-fit: cover; border-radius: 16px; transition: transform 0.3s;"
+                             alt="${flower.flowerName}"
+                             onmouseover="this.style.transform='scale(1.05)'"
+                             onmouseout="this.style.transform='scale(1)'">
+                    </a>
+                    <div class="card-body text-center d-flex flex-column justify-content-between">
+                        <div>
+                            <h6 class="card-title fw-bold mb-2">
+                                <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="text-decoration-none text-dark hover-success">
+                                    ${flower.flowerName}
+                                </a>
+                            </h6>
+                            <p class="card-text text-danger fw-bold fs-5 mb-3">
+                                <fmt:formatNumber value="${flower.price}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
+                            </p>
+                        </div>
+                        <form action="${pageContext.request.contextPath}/cart" method="post" class="mt-auto">
+                            <input type="hidden" name="action" value="add">
+                            <input type="hidden" name="flowerID" value="${flower.flowerID}">
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm">
+                                <i class="bi bi-cart-plus-fill me-1"></i> Đặt Hàng
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </c:forEach>
+    </div>
+</div>
+
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />

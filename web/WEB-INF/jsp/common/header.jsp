@@ -123,7 +123,7 @@
                                 <c:if test="${sessionScope.user.roleID == 3}">
                                     <li>
                                         <a class="dropdown-item"
-                                           href="${pageContext.request.contextPath}/order-history">
+                                           href="${pageContext.request.contextPath}/orders">
                                             Đơn hàng của tôi
                                         </a>
                                     </li>

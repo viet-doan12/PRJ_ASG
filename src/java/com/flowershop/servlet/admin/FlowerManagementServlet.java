@@ -17,7 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *
  * @author ADMIN
  */
-@WebServlet(name="FlowerServlet", urlPatterns={"/admin/flowers"})
+@WebServlet(name="FlowerManagementServlet", urlPatterns={"/admin/flowers"})
 public class FlowerManagementServlet extends HttpServlet {
    
     /** 
