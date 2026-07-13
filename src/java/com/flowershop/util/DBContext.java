@@ -9,17 +9,14 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 /**
  *
  * @author FPT University - PRJ30X
  */
 public class DBContext {
+
     protected Connection connection;
+
     public DBContext() {
         //@Students: You are not allowed to edit this method  
         try {
@@ -38,6 +35,22 @@ public class DBContext {
             connection = DBCPUtils.getConnection(url, user, pass);
         } catch (ClassNotFoundException | SQLException ex) {
             Logger.getLogger(DBContext.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
+     * Trả connection về lại pool sau khi DAO dùng xong.
+     * Được thêm mới hoàn toàn - không sửa gì constructor phía trên.
+     * Gọi trong khối finally của servlet ngay sau khi dùng xong 1 DAO,
+     * để tránh làm cạn kiệt Tomcat JDBC Connection Pool.
+     */
+    public void closeConnection() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close(); // với connection pool, close() = trả về pool, không hủy thật
+            }
+        } catch (SQLException e) {
+            Logger.getLogger(DBContext.class.getName()).log(Level.SEVERE, "Loi khi dong connection", e);
         }
     }
 }
