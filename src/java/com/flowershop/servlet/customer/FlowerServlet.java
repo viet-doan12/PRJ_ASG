@@ -28,18 +28,8 @@ public class FlowerServlet extends HttpServlet {
 
     private static final String DETAIL_VIEW = "/WEB-INF/jsp/customer/flower-detail.jsp";
 
-    private FlowerDAO flowerDAO;
-    private CategoryDAO categoryDAO;
-    private ReviewDAO reviewDAO;
-    private UserDAO userDAO;
-
-    @Override
-    public void init() throws ServletException {
-        flowerDAO = new FlowerDAO();
-        categoryDAO = new CategoryDAO();
-        reviewDAO = new ReviewDAO();
-        userDAO = new UserDAO();
-    }
+    // Không còn field cấp lớp / init() - 4 DAO được tạo và đóng ngay trong từng request,
+    // tránh giữ 4 connection sống suốt vòng đời servlet.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -51,9 +41,13 @@ public class FlowerServlet extends HttpServlet {
             return;
         }
 
+        FlowerDAO flowerDAO = new FlowerDAO();
+        CategoryDAO categoryDAO = new CategoryDAO();
+        ReviewDAO reviewDAO = new ReviewDAO();
+        UserDAO userDAO = new UserDAO();
+
         try {
             int flowerID = Integer.parseInt(idParam);
-
             Flower flower = flowerDAO.getFlowerById(flowerID);
             if (flower == null || !flower.isStatus()) {
                 response.sendRedirect(request.getContextPath() + "/home?msg=flowerNotFound");
@@ -77,11 +71,14 @@ public class FlowerServlet extends HttpServlet {
                 }
             }
             request.setAttribute("reviewerNames", reviewerNames);
-
-            request.getRequestDispatcher(DETAIL_VIEW).forward(request, response);
-
+request.getRequestDispatcher(DETAIL_VIEW).forward(request, response);
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/home?msg=invalidId");
+        } finally {
+            flowerDAO.closeConnection();
+            categoryDAO.closeConnection();
+            reviewDAO.closeConnection();
+            userDAO.closeConnection();
         }
     }
 

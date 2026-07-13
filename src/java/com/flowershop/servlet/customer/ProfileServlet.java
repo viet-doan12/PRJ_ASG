@@ -19,17 +19,14 @@ public class ProfileServlet extends HttpServlet {
             = "/WEB-INF/jsp/customer/profile.jsp";
 
     @Override
-    protected void doGet(HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Không cache trang Profile
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", 0);
 
         HttpSession session = request.getSession(false);
-
         if (session == null || session.getAttribute("user") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
@@ -38,34 +35,28 @@ public class ProfileServlet extends HttpServlet {
         User sessionUser = (User) session.getAttribute("user");
 
         UserDAO dao = new UserDAO();
-        User liveUser = dao.getUserById(sessionUser.getUserID());
+        try {
+            User liveUser = dao.getUserById(sessionUser.getUserID());
 
-        // Kiểm tra tài khoản còn tồn tại hay bị khóa
-        if (liveUser == null || !liveUser.isStatus()) {
-            session.invalidate();
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/login?error=account_locked");
-            return;
+            if (liveUser == null || !liveUser.isStatus()) {
+                session.invalidate();
+                response.sendRedirect(request.getContextPath() + "/login?error=account_locked");
+                return;
+            }
+
+            session.setAttribute("user", liveUser);
+            loadFlashMessage(session, request);
+            request.getRequestDispatcher(PROFILE_PAGE).forward(request, response);
+        } finally {
+            dao.closeConnection();
         }
-
-        // Luôn đồng bộ User mới nhất từ Database
-        session.setAttribute("user", liveUser);
-
-        // Load Flash Message
-        loadFlashMessage(session, request);
-
-        request.getRequestDispatcher(PROFILE_PAGE)
-                .forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         HttpSession session = request.getSession(false);
-
         if (session == null || session.getAttribute("user") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
@@ -74,37 +65,27 @@ public class ProfileServlet extends HttpServlet {
         User sessionUser = (User) session.getAttribute("user");
 
         UserDAO dao = new UserDAO();
-        User liveUser = dao.getUserById(sessionUser.getUserID());
+        try {
+            User liveUser = dao.getUserById(sessionUser.getUserID());
 
-        if (liveUser == null || !liveUser.isStatus()) {
-            session.invalidate();
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/login?error=account_locked");
-            return;
+            if (liveUser == null || !liveUser.isStatus()) {
+                session.invalidate();
+                response.sendRedirect(request.getContextPath() + "/login?error=account_locked");
+                return;
+            }
+
+            String action = request.getParameter("action");
+
+            if ("updateInfo".equals(action)) {
+                updateProfile(request, session, liveUser, dao);
+            } else if ("changePassword".equals(action)) {
+                changePassword(request, session, liveUser, dao);
+            }
+
+            response.sendRedirect(request.getContextPath() + "/profile");
+        } finally {
+            dao.closeConnection();
         }
-
-        String action = request.getParameter("action");
-
-        if ("updateInfo".equals(action)) {
-
-            updateProfile(
-                    request,
-                    session,
-                    liveUser,
-                    dao);
-
-        } else if ("changePassword".equals(action)) {
-
-            changePassword(
-                    request,
-                    session,
-                    liveUser,
-                    dao);
-        }
-
-        // PRG Pattern
-        response.sendRedirect(request.getContextPath() + "/profile");
     }
 
     /**

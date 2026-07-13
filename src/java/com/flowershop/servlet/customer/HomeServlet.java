@@ -4,13 +4,11 @@ import com.flowershop.dao.CategoryDAO;
 import com.flowershop.dao.FlowerDAO;
 import com.flowershop.model.Category;
 import com.flowershop.model.Flower;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -22,25 +20,27 @@ public class HomeServlet extends HttpServlet {
 
     private static final String HOME_VIEW = "/WEB-INF/jsp/customer/homepage.jsp";
 
-    private FlowerDAO flowerDAO;
-    private CategoryDAO categoryDAO;
-
-    @Override
-    public void init() throws ServletException {
-        flowerDAO = new FlowerDAO();
-        categoryDAO = new CategoryDAO();
-    }
+    // Không còn field cấp lớp / init() - tạo và đóng DAO ngay trong từng request.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Category> categories = categoryDAO.getActiveCategories();
-        List<Flower> featuredFlowers = flowerDAO.getTopSellingFlower(8);
 
-        request.setAttribute("categories", categories);
-        request.setAttribute("featuredFlowers", featuredFlowers);
+        FlowerDAO flowerDAO = new FlowerDAO();
+        CategoryDAO categoryDAO = new CategoryDAO();
 
-        request.getRequestDispatcher(HOME_VIEW).forward(request, response);
+        try {
+            List<Category> categories = categoryDAO.getActiveCategories();
+            List<Flower> featuredFlowers = flowerDAO.getTopSellingFlower(8);
+
+            request.setAttribute("categories", categories);
+            request.setAttribute("featuredFlowers", featuredFlowers);
+
+            request.getRequestDispatcher(HOME_VIEW).forward(request, response);
+        } finally {
+            flowerDAO.closeConnection();
+            categoryDAO.closeConnection();
+        }
     }
 
     @Override

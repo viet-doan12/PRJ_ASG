@@ -32,7 +32,6 @@ public class CartServlet extends HttpServlet {
         // 1. Kiểm tra quyền đăng nhập của Khách hàng từ Session
         User user = (User) session.getAttribute("user");
         if (user == null) {
-            // Lưu lại URL hiện tại để sau khi login xong có thể quay lại giỏ hàng
             session.setAttribute("redirectAfterLogin", request.getContextPath() + "/cart");
             response.sendRedirect(request.getContextPath() + "/login");
             return;
@@ -45,15 +44,16 @@ public class CartServlet extends HttpServlet {
 
         CartDAO cartDAO = new CartDAO();
         FlowerDAO flowerDAO = new FlowerDAO();
-        int cartID = cartDAO.getCartIDByUserID(user.getUserID());
-
-        if (cartID == -1) {
-            session.setAttribute("errorMessage", "Không thể khởi tạo giỏ hàng. Vui lòng thử lại.");
-            response.sendRedirect(request.getContextPath() + "/cart?action=view");
-            return;
-        }
 
         try {
+            int cartID = cartDAO.getCartIDByUserID(user.getUserID());
+
+            if (cartID == -1) {
+                session.setAttribute("errorMessage", "Không thể khởi tạo giỏ hàng. Vui lòng thử lại.");
+                response.sendRedirect(request.getContextPath() + "/cart?action=view");
+                return;
+            }
+
             switch (action) {
                 case "add":
                     handleAdd(request, response, cartDAO, flowerDAO, session, cartID);
@@ -76,7 +76,7 @@ public class CartServlet extends HttpServlet {
                 case "view":
                 default:
                     showCart(request, response, cartDAO, session, cartID);
-                    break;
+break;
             }
         } catch (NumberFormatException e) {
             session.setAttribute("errorMessage", "Dữ liệu không hợp lệ.");
@@ -84,6 +84,9 @@ public class CartServlet extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
             response.sendRedirect(request.getContextPath() + "/jsp/500.jsp");
+        } finally {
+            cartDAO.closeConnection();
+            flowerDAO.closeConnection();
         }
     }
 
@@ -112,7 +115,6 @@ public class CartServlet extends HttpServlet {
             return;
         }
 
-        // Kiểm tra sản phẩm tồn tại và còn hàng
         Flower flower = flowerDAO.getFlowerById(flowerID);
         if (flower == null || !flower.isStatus()) {
             session.setAttribute("errorMessage", "Sản phẩm không tồn tại hoặc đã ngừng bán.");
@@ -120,7 +122,6 @@ public class CartServlet extends HttpServlet {
             return;
         }
 
-        // Số lượng đã có sẵn trong giỏ (nếu có) + số lượng thêm mới không được vượt tồn kho
         List<CartItem> currentCart = cartDAO.getCartItemsFromDB(cartID);
         int currentQtyInCart = 0;
         for (CartItem item : currentCart) {
@@ -143,7 +144,7 @@ public class CartServlet extends HttpServlet {
     }
 
     // Cập nhật số lượng sản phẩm trong giỏ hàng
-    private void handleUpdate(HttpServletRequest request, HttpServletResponse response,
+private void handleUpdate(HttpServletRequest request, HttpServletResponse response,
             CartDAO cartDAO, FlowerDAO flowerDAO, HttpSession session, int cartID)
             throws IOException {
 
@@ -211,7 +212,7 @@ public class CartServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }

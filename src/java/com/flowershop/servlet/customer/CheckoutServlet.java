@@ -31,7 +31,6 @@ import jakarta.servlet.http.HttpSession;
 @WebServlet(name = "CheckoutServlet", urlPatterns = {"/checkout"})
 public class CheckoutServlet extends HttpServlet {
 
-    // Phải khớp với CHECK constraint của cột PaymentMethod trong bảng Payments
     private static final String[] VALID_PAYMENT_METHODS = {"COD", "Bank Transfer"};
 
     @Override
@@ -62,40 +61,43 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         CartDAO cartDAO = new CartDAO();
-        int cartID = cartDAO.getCartIDByUserID(user.getUserID());
-        List<CartItem> cartItems = cartDAO.getCartItemsFromDB(cartID);
 
-        if (cartItems.isEmpty()) {
-            session.setAttribute("session_error", "Giỏ hàng của bạn đang trống, không thể thanh toán.");
-            response.sendRedirect(request.getContextPath() + "/cart");
-            return;
-        }
+        try {
+            int cartID = cartDAO.getCartIDByUserID(user.getUserID());
+            List<CartItem> cartItems = cartDAO.getCartItemsFromDB(cartID);
 
-        // Kiểm tra lại tồn kho trước khi cho vào trang thanh toán
-        // (đề phòng sản phẩm vừa hết hàng sau khi khách đã thêm vào giỏ)
-        List<String> outOfStockNames = new ArrayList<>();
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (CartItem item : cartItems) {
-            Flower flower = item.getFlower();
-            if (flower == null || !flower.isStatus() || item.getQuantity() > flower.getStockQuantity()) {
-                outOfStockNames.add(flower != null ? flower.getFlowerName() : "Sản phẩm không xác định");
-            } else {
-                total = total.add(flower.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            if (cartItems.isEmpty()) {
+                session.setAttribute("session_error", "Giỏ hàng của bạn đang trống, không thể thanh toán.");
+                response.sendRedirect(request.getContextPath() + "/cart");
+return;
             }
-        }
 
-        if (!outOfStockNames.isEmpty()) {
-            session.setAttribute("session_error",
-                    "Một số sản phẩm không đủ số lượng tồn kho: " + String.join(", ", outOfStockNames)
-                    + ". Vui lòng cập nhật lại giỏ hàng.");
-            response.sendRedirect(request.getContextPath() + "/cart");
-            return;
-        }
+            List<String> outOfStockNames = new ArrayList<>();
+            BigDecimal total = BigDecimal.ZERO;
 
-        request.setAttribute("cartItems", cartItems);
-        request.setAttribute("cartTotal", total);
-        request.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(request, response);
+            for (CartItem item : cartItems) {
+                Flower flower = item.getFlower();
+                if (flower == null || !flower.isStatus() || item.getQuantity() > flower.getStockQuantity()) {
+                    outOfStockNames.add(flower != null ? flower.getFlowerName() : "Sản phẩm không xác định");
+                } else {
+                    total = total.add(flower.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                }
+            }
+
+            if (!outOfStockNames.isEmpty()) {
+                session.setAttribute("session_error",
+                        "Một số sản phẩm không đủ số lượng tồn kho: " + String.join(", ", outOfStockNames)
+                        + ". Vui lòng cập nhật lại giỏ hàng.");
+                response.sendRedirect(request.getContextPath() + "/cart");
+                return;
+            }
+
+            request.setAttribute("cartItems", cartItems);
+            request.setAttribute("cartTotal", total);
+            request.getRequestDispatcher("/WEB-INF/jsp/customer/checkout.jsp").forward(request, response);
+        } finally {
+            cartDAO.closeConnection();
+        }
     }
 
     // ==========================================================
@@ -117,7 +119,6 @@ public class CheckoutServlet extends HttpServlet {
         String shippingAddress = request.getParameter("shippingAddress");
         String paymentMethod = request.getParameter("paymentMethod");
 
-        // 1. VALIDATE dữ liệu người nhận
         if (!ValidationUtil.isValidFullName(receiverName)) {
             session.setAttribute("session_error", "Họ tên người nhận không hợp lệ (2-100 ký tự).");
             response.sendRedirect(request.getContextPath() + "/checkout");
@@ -130,7 +131,7 @@ public class CheckoutServlet extends HttpServlet {
         }
         if (ValidationUtil.isEmpty(shippingAddress)) {
             session.setAttribute("session_error", "Vui lòng nhập địa chỉ giao hàng.");
-            response.sendRedirect(request.getContextPath() + "/checkout");
+response.sendRedirect(request.getContextPath() + "/checkout");
             return;
         }
         if (!isValidPaymentMethod(paymentMethod)) {
@@ -139,86 +140,84 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        // 2. LẤY GIỎ HÀNG TỪ DATABASE (không tin số lượng/giá gửi lên từ client)
         CartDAO cartDAO = new CartDAO();
         FlowerDAO flowerDAO = new FlowerDAO();
-        int cartID = cartDAO.getCartIDByUserID(user.getUserID());
-        List<CartItem> cartItems = cartDAO.getCartItemsFromDB(cartID);
+        OrderDAO orderDAO = new OrderDAO();
+        PaymentDAO paymentDAO = new PaymentDAO();
 
-        if (cartItems.isEmpty()) {
-            session.setAttribute("session_error", "Giỏ hàng của bạn đang trống, không thể thanh toán.");
-            response.sendRedirect(request.getContextPath() + "/cart");
-            return;
-        }
+        try {
+            int cartID = cartDAO.getCartIDByUserID(user.getUserID());
+            List<CartItem> cartItems = cartDAO.getCartItemsFromDB(cartID);
 
-        // 3. KIỂM TRA LẠI TỒN KHO LẦN CUỐI + XÂY DANH SÁCH OrderDetail
-        //    (giá lấy từ Flowers tại thời điểm đặt hàng, không lấy từ form)
-        List<OrderDetail> orderDetails = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
-
-        for (CartItem item : cartItems) {
-            Flower flower = flowerDAO.getFlowerById(item.getFlower().getFlowerID());
-
-            if (flower == null || !flower.isStatus() || item.getQuantity() > flower.getStockQuantity()) {
-                session.setAttribute("session_error",
-                        "Sản phẩm \"" + (flower != null ? flower.getFlowerName() : "")
-                        + "\" không đủ số lượng tồn kho. Vui lòng cập nhật lại giỏ hàng.");
+            if (cartItems.isEmpty()) {
+                session.setAttribute("session_error", "Giỏ hàng của bạn đang trống, không thể thanh toán.");
                 response.sendRedirect(request.getContextPath() + "/cart");
                 return;
             }
 
-            OrderDetail detail = new OrderDetail();
-            detail.setFlowerID(flower.getFlowerID());
-            detail.setQuantity(item.getQuantity());
-            detail.setUnitPrice(flower.getPrice());
-            orderDetails.add(detail);
+            List<OrderDetail> orderDetails = new ArrayList<>();
+            BigDecimal totalAmount = BigDecimal.ZERO;
 
-            totalAmount = totalAmount.add(flower.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            for (CartItem item : cartItems) {
+                Flower flower = flowerDAO.getFlowerById(item.getFlower().getFlowerID());
+
+                if (flower == null || !flower.isStatus() || item.getQuantity() > flower.getStockQuantity()) {
+                    session.setAttribute("session_error",
+                            "Sản phẩm \"" + (flower != null ? flower.getFlowerName() : "")
+                            + "\" không đủ số lượng tồn kho. Vui lòng cập nhật lại giỏ hàng.");
+                    response.sendRedirect(request.getContextPath() + "/cart");
+                    return;
+                }
+
+                OrderDetail detail = new OrderDetail();
+                detail.setFlowerID(flower.getFlowerID());
+                detail.setQuantity(item.getQuantity());
+                detail.setUnitPrice(flower.getPrice());
+                orderDetails.add(detail);
+
+                totalAmount = totalAmount.add(flower.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            }
+
+            Order order = new Order();
+            order.setUserID(user.getUserID());
+            order.setReceiverName(receiverName.trim());
+            order.setReceiverPhone(receiverPhone.trim());
+            order.setShippingAddress(shippingAddress.trim());
+            order.setTotalAmount(totalAmount);
+            order.setStatus("Pending");
+
+            int newOrderID = orderDAO.createOrder(order, orderDetails);
+
+            if (newOrderID <= 0) {
+                session.setAttribute("session_error",
+                        "Đặt hàng thất bại (có thể do một sản phẩm vừa hết hàng). Vui lòng kiểm tra lại giỏ hàng.");
+                response.sendRedirect(request.getContextPath() + "/cart");
+                return;
+            }
+
+            Payment payment = new Payment();
+            payment.setOrderID(newOrderID);
+payment.setPaymentMethod(paymentMethod);
+            payment.setPaymentStatus("Pending");
+            payment.setTransactionCode(null);
+
+            boolean paymentSaved = paymentDAO.insertPayment(payment);
+
+            if (!paymentSaved) {
+                System.out.println("[CANH BAO] Da tao Order #" + newOrderID
+                        + " nhung KHONG luu duoc Payment. Can kiem tra thu cong.");
+            }
+
+            cartDAO.clearCart(cartID);
+
+            session.setAttribute("session_message", "Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại Flower Shop.");
+            response.sendRedirect(request.getContextPath() + "/orders");
+        } finally {
+            cartDAO.closeConnection();
+            flowerDAO.closeConnection();
+            orderDAO.closeConnection();
+            paymentDAO.closeConnection();
         }
-
-        // 4. TẠO ĐƠN HÀNG (OrderDAO.createOrder tự lo transaction + trừ tồn kho,
-        //    và trả thẳng OrderID vừa tạo - không cần truy vấn lại lần nữa)
-        Order order = new Order();
-        order.setUserID(user.getUserID());
-        order.setReceiverName(receiverName.trim());
-        order.setReceiverPhone(receiverPhone.trim());
-        order.setShippingAddress(shippingAddress.trim());
-        order.setTotalAmount(totalAmount);
-        order.setStatus("Pending");
-
-        OrderDAO orderDAO = new OrderDAO();
-        int newOrderID = orderDAO.createOrder(order, orderDetails);
-
-        if (newOrderID <= 0) {
-            session.setAttribute("session_error",
-                    "Đặt hàng thất bại (có thể do một sản phẩm vừa hết hàng). Vui lòng kiểm tra lại giỏ hàng.");
-            response.sendRedirect(request.getContextPath() + "/cart");
-            return;
-        }
-
-        // 5. LƯU THÔNG TIN THANH TOÁN CHO ĐƠN VỪA TẠO (dùng đúng ID vừa nhận được, không đoán lại)
-        Payment payment = new Payment();
-        payment.setOrderID(newOrderID);
-        payment.setPaymentMethod(paymentMethod);
-        payment.setPaymentStatus("Pending");
-        payment.setTransactionCode(null);
-
-        PaymentDAO paymentDAO = new PaymentDAO();
-        boolean paymentSaved = paymentDAO.insertPayment(payment);
-
-        if (!paymentSaved) {
-            // Đơn hàng đã tạo thành công nhưng lưu Payment thất bại - vẫn cho qua để không
-            // mất đơn hàng của khách, nhưng cần log lại để admin xử lý thủ công.
-            System.out.println("[CANH BAO] Da tao Order #" + newOrderID
-                    + " nhung KHONG luu duoc Payment. Can kiem tra thu cong.");
-        }
-
-        // 6. XÓA GIỎ HÀNG SAU KHI ĐẶT HÀNG THÀNH CÔNG
-        cartDAO.clearCart(cartID);
-
-        // 7. THÔNG BÁO & CHUYỂN HƯỚNG SANG LỊCH SỬ ĐƠN HÀNG (/orders)
-        session.setAttribute("session_message", "Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại Flower Shop.");
-        response.sendRedirect(request.getContextPath() + "/orders");
     }
 
     private boolean isValidPaymentMethod(String method) {

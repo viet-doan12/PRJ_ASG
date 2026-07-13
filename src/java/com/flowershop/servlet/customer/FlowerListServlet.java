@@ -28,70 +28,71 @@ public class FlowerListServlet extends HttpServlet {
     private static final String LIST_VIEW = "/WEB-INF/jsp/customer/flower.jsp";
     private static final int PAGE_SIZE = PaginationUtil.DEFAULT_PAGE_SIZE;
 
-    private FlowerDAO flowerDAO;
-    private CategoryDAO categoryDAO;
-
-    @Override
-    public void init() throws ServletException {
-        flowerDAO = new FlowerDAO();
-        categoryDAO = new CategoryDAO();
-    }
+    // Không còn field cấp lớp / init() - mỗi request tự tạo và tự đóng DAO của riêng nó,
+    // tránh giữ connection sống mãi từ lúc servlet khởi tạo tới khi server tắt.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String keyword = request.getParameter("keyword");
-        String categoryParam = request.getParameter("categoryID");
-        String sort = request.getParameter("sort");
-        int page = PaginationUtil.parsePage(request.getParameter("page"));
+        FlowerDAO flowerDAO = new FlowerDAO();
+        CategoryDAO categoryDAO = new CategoryDAO();
 
-        List<Flower> flowers;
+        try {
+            String keyword = request.getParameter("keyword");
+            String categoryParam = request.getParameter("categoryID");
+            String sort = request.getParameter("sort");
+            int page = PaginationUtil.parsePage(request.getParameter("page"));
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            flowers = flowerDAO.searchFlower(keyword.trim());
-        } else if (categoryParam != null && !categoryParam.trim().isEmpty()) {
-            try {
-                int categoryId = Integer.parseInt(categoryParam);
-                flowers = flowerDAO.getFlowerByCategory(categoryId);
-            } catch (NumberFormatException e) {
+            List<Flower> flowers;
+
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                flowers = flowerDAO.searchFlower(keyword.trim());
+            } else if (categoryParam != null && !categoryParam.trim().isEmpty()) {
+                try {
+                    int categoryId = Integer.parseInt(categoryParam);
+                    flowers = flowerDAO.getFlowerByCategory(categoryId);
+                } catch (NumberFormatException e) {
+                    flowers = flowerDAO.getAllFlowers();
+                }
+            } else {
                 flowers = flowerDAO.getAllFlowers();
             }
-        } else {
-            flowers = flowerDAO.getAllFlowers();
-        }
 
-        // customers should never see hidden / stopped-selling products
-        List<Flower> visibleFlowers = new ArrayList<>();
-        for (Flower f : flowers) {
-            if (f.isStatus()) {
-                visibleFlowers.add(f);
+            // customers should never see hidden / stopped-selling products
+            List<Flower> visibleFlowers = new ArrayList<>();
+            for (Flower f : flowers) {
+                if (f.isStatus()) {
+                    visibleFlowers.add(f);
+                }
             }
+            flowers = visibleFlowers;
+
+            sortFlowers(flowers, sort);
+
+            int totalRecords = flowers.size();
+            int totalPages = PaginationUtil.getTotalPages(totalRecords, PAGE_SIZE);
+            if (totalPages > 0 && page > totalPages) {
+                page = totalPages;
+            }
+int fromIndex = PaginationUtil.getOffset(page, PAGE_SIZE);
+            int toIndex = Math.min(fromIndex + PAGE_SIZE, totalRecords);
+            List<Flower> pageFlowers = (fromIndex < totalRecords)
+                    ? flowers.subList(fromIndex, toIndex)
+                    : new ArrayList<>();
+
+            List<Category> categories = categoryDAO.getActiveCategories();
+
+            request.setAttribute("flowerList", pageFlowers);
+            request.setAttribute("categoryList", categories);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+
+            request.getRequestDispatcher(LIST_VIEW).forward(request, response);
+        } finally {
+            flowerDAO.closeConnection();
+            categoryDAO.closeConnection();
         }
-        flowers = visibleFlowers;
-
-        sortFlowers(flowers, sort);
-
-        int totalRecords = flowers.size();
-        int totalPages = PaginationUtil.getTotalPages(totalRecords, PAGE_SIZE);
-        if (totalPages > 0 && page > totalPages) {
-            page = totalPages;
-        }
-
-        int fromIndex = PaginationUtil.getOffset(page, PAGE_SIZE);
-        int toIndex = Math.min(fromIndex + PAGE_SIZE, totalRecords);
-        List<Flower> pageFlowers = (fromIndex < totalRecords)
-                ? flowers.subList(fromIndex, toIndex)
-                : new ArrayList<>();
-
-        List<Category> categories = categoryDAO.getActiveCategories();
-
-        request.setAttribute("flowerList", pageFlowers);
-        request.setAttribute("categoryList", categories);
-        request.setAttribute("currentPage", page);
-        request.setAttribute("totalPages", totalPages);
-
-        request.getRequestDispatcher(LIST_VIEW).forward(request, response);
     }
 
     @Override
@@ -117,7 +118,6 @@ public class FlowerListServlet extends HttpServlet {
                 flowers.sort(Comparator.comparing(Flower::getFlowerName, String.CASE_INSENSITIVE_ORDER));
                 break;
             default:
-                // "default" or unrecognized value: keep the DAO's natural order
                 break;
         }
     }

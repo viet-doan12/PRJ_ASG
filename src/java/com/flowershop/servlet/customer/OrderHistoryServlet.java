@@ -19,51 +19,49 @@ import jakarta.servlet.http.HttpSession;
 @WebServlet(name = "OrderHistoryServlet", urlPatterns = {"/orders"})
 public class OrderHistoryServlet extends HttpServlet {
 
-    private final OrderDAO orderDAO = new OrderDAO();
-    private final OrderDetailDAO orderDetailDAO = new OrderDetailDAO();
-    private final FlowerDAO flowerDAO = new FlowerDAO();
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
 
-        // 1. Kiểm tra đăng nhập
         if (user == null) {
             session.setAttribute("redirectAfterLogin", request.getContextPath() + "/orders");
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
-        String action = request.getParameter("action");
-
-        if ("detail".equals(action)) {
-            showOrderDetail(request, response, user);
-        } else {
-            showOrderHistory(request, response, user);
+        OrderDAO orderDAO = new OrderDAO();
+        OrderDetailDAO orderDetailDAO = new OrderDetailDAO();
+        FlowerDAO flowerDAO = new FlowerDAO();
+        try {
+            String action = request.getParameter("action");
+            if ("detail".equals(action)) {
+                showOrderDetail(request, response, user, orderDAO, orderDetailDAO, flowerDAO);
+            } else {
+                showOrderHistory(request, response, user, orderDAO);
+            }
+        } finally {
+            orderDAO.closeConnection();
+            orderDetailDAO.closeConnection();
+            flowerDAO.closeConnection();
         }
     }
 
-    // ================== DANH SÁCH ĐƠN HÀNG CỦA TÔI ==================
-    private void showOrderHistory(HttpServletRequest request, HttpServletResponse response, User user)
+    private void showOrderHistory(HttpServletRequest request, HttpServletResponse response,
+            User user, OrderDAO orderDAO)
             throws ServletException, IOException {
-
         List<Order> orderList = orderDAO.getOrdersByUser(user.getUserID());
-
         request.setAttribute("orderList", orderList);
         request.getRequestDispatcher("/WEB-INF/jsp/customer/order-history.jsp").forward(request, response);
     }
 
-    // ================== CHI TIẾT 1 ĐƠN HÀNG CỦA TÔI ==================
-    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response, User user)
+    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response,
+            User user, OrderDAO orderDAO, OrderDetailDAO orderDetailDAO, FlowerDAO flowerDAO)
             throws ServletException, IOException {
-
         int orderID = parseIntSafe(request.getParameter("id"), -1);
         Order order = orderID > 0 ? orderDAO.getOrderById(orderID) : null;
 
-        // Chỉ cho phép xem đơn hàng của chính mình
         if (order == null || order.getUserID() != user.getUserID()) {
             response.sendRedirect(request.getContextPath() + "/orders");
             return;
