@@ -21,7 +21,6 @@ public class User {
     private boolean status;
     private Timestamp createdDate;
     private Timestamp updatedDate;
-    private String roleName;
 
     public User(int userID, String fullName, String email, String password, String phone, String address, int roleID, boolean status, Timestamp createdDate, Timestamp updatedDate, String roleName) {
         this.userID = userID;
@@ -36,16 +35,31 @@ public class User {
         this.updatedDate = updatedDate;
         this.roleName = roleName;
     }
+    private String roleName;
 
-    public User() {
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
     }
 
     public String getRoleName() {
         return roleName;
     }
+    public User() {
+    }
 
-    public void setRoleName(String roleName) {
-        this.roleName = roleName;
+    public User(int userID, String fullName, String email, String password,
+            String phone, String address, int roleID, boolean status,
+            Timestamp createdDate, Timestamp updatedDate) {
+        this.userID = userID;
+        this.fullName = fullName;
+        this.email = email;
+        this.password = password;
+        this.phone = phone;
+        this.address = address;
+        this.roleID = roleID;
+        this.status = status;
+        this.createdDate = createdDate;
+        this.updatedDate = updatedDate;
     }
 
     public int getUserID() {

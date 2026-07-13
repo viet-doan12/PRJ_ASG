@@ -4,15 +4,12 @@
  */
 package com.flowershop.dao;
 
-import com.flowershop.util.DBContext;
 import com.flowershop.model.User;
 import com.flowershop.util.DBContext;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -377,23 +374,128 @@ public class UserDAO extends DBContext {
         return 0;
     }
 
-    private User mapRow(ResultSet rs) throws SQLException {
-        User u = new User();
-        u.setUserID(rs.getInt("UserID"));
-        u.setFullName(rs.getString("FullName"));
-        u.setEmail(rs.getString("Email"));
-        u.setPassword(rs.getString("Password"));
-        u.setPhone(rs.getString("Phone"));
-        u.setAddress(rs.getString("Address"));
-        u.setRoleID(rs.getInt("RoleID"));
-        u.setStatus(rs.getBoolean("Status"));
-        u.setCreatedDate(rs.getTimestamp("CreatedDate"));
-        u.setUpdatedDate(rs.getTimestamp("UpdatedDate"));
-        try {
-            u.setRoleName(rs.getString("RoleName"));
-        } catch (SQLException ignored) {
-            // cột RoleName chỉ có khi query JOIN với Roles
+    /**
+     * Admin: phân trang + tìm kiếm nâng cao (keyword, role, status).
+     * roleId = null → mọi role; status = null → mọi trạng thái.
+     */
+    public List<User> getUsersPaged(int offset, int pageSize, String keyword,
+            Integer roleId, Boolean status) {
+        List<User> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT u.*, r.RoleName FROM Users u "
+                + "JOIN Roles r ON u.RoleID = r.RoleID WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append("AND (u.FullName LIKE ? OR u.Email LIKE ? OR u.Phone LIKE ?) ");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
         }
-        return u;
+        if (roleId != null) {
+            sql.append("AND u.RoleID = ? ");
+            params.add(roleId);
+        }
+        if (status != null) {
+            sql.append("AND u.Status = ? ");
+            params.add(status);
+        }
+        sql.append("ORDER BY u.UserID DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            int idx = 1;
+            for (Object p : params) {
+                ps.setObject(idx++, p);
+            }
+            ps.setInt(idx++, offset);
+            ps.setInt(idx, pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
+
+    public int countUsers(String keyword, Integer roleId, Boolean status) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM Users u WHERE 1=1 ");
+        List<Object> params = new ArrayList<>();
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append("AND (u.FullName LIKE ? OR u.Email LIKE ? OR u.Phone LIKE ?) ");
+            String like = "%" + keyword.trim() + "%";
+            params.add(like);
+            params.add(like);
+            params.add(like);
+        }
+        if (roleId != null) {
+            sql.append("AND u.RoleID = ? ");
+            params.add(roleId);
+        }
+        if (status != null) {
+            sql.append("AND u.Status = ? ");
+            params.add(status);
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            int idx = 1;
+            for (Object p : params) {
+                ps.setObject(idx++, p);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /** Soft-delete / khóa tài khoản (Status = 0). */
+    public boolean lockUser(int userId) {
+        return updateStatus(userId, false);
+    }
+
+    /** Mở khóa tài khoản (Status = 1). */
+    public boolean unlockUser(int userId) {
+        return updateStatus(userId, true);
+    }
+
+    public boolean updateRole(int userId, int roleId) {
+        String sql = "UPDATE Users SET RoleID = ?, UpdatedDate = GETDATE() WHERE UserID = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, roleId);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+private User mapRow(ResultSet rs) throws SQLException {
+    User u = new User();
+    u.setUserID(rs.getInt("UserID"));
+    u.setFullName(rs.getString("FullName"));
+    u.setEmail(rs.getString("Email"));
+    u.setPassword(rs.getString("Password"));
+    u.setPhone(rs.getString("Phone"));
+    u.setAddress(rs.getString("Address"));
+    u.setRoleID(rs.getInt("RoleID"));
+    u.setStatus(rs.getBoolean("Status"));
+    u.setCreatedDate(rs.getTimestamp("CreatedDate"));
+    u.setUpdatedDate(rs.getTimestamp("UpdatedDate"));
+    try {
+        u.setRoleName(rs.getString("RoleName"));
+    } catch (SQLException ignored) {
+        // cột RoleName chỉ có khi query JOIN với Roles
+    }
+    return u;
+}
 }

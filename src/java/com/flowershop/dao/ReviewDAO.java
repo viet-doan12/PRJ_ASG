@@ -2,30 +2,32 @@ package com.flowershop.dao;
 
 import com.flowershop.model.Review;
 import com.flowershop.util.DBContext;
-import com.flowershop.util.PaginationUtil;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * DAO cho module Review (Phạm Đức Minh).
+ * Map đúng field model Review hiện có (không thêm thuộc tính model).
+ */
 public class ReviewDAO extends DBContext {
 
     /**
-     * Thêm review. rating nên trong khoảng 1-5 (validate ở servlet).
+     * Thêm review. rating nên trong khoảng 1–5 (validate ở servlet).
+     *
      * @return ReviewID mới, hoặc -1 nếu lỗi
      */
     public int addReview(Review review) {
-        String sql = "INSERT INTO Reviews (OrderID, FlowerID, UserID, Rating, Comment, Status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Reviews (OrderID, FlowerID, UserID, Rating, Comment, Status) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             if (review.getOrderID() > 0) {
                 ps.setInt(1, review.getOrderID());
             } else {
-                ps.setNull(1, Types.INTEGER);
+                ps.setNull(1, java.sql.Types.INTEGER);
             }
             ps.setInt(2, review.getFlowerID());
             ps.setInt(3, review.getUserID());
@@ -47,39 +49,9 @@ public class ReviewDAO extends DBContext {
         return -1;
     }
 
-    /** Một khách hàng chỉ được review 1 lần cho mỗi (đơn hàng, hoa). */
-    public boolean hasReviewed(int orderId, int flowerId, int userId) {
-        String sql = "SELECT 1 FROM Reviews WHERE OrderID = ? AND FlowerID = ? AND UserID = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, orderId);
-            ps.setInt(2, flowerId);
-            ps.setInt(3, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /** Khách hàng tự sửa review của mình. */
-    public boolean updateReview(int reviewId, int userId, int rating, String comment) {
-        String sql = "UPDATE Reviews SET Rating = ?, Comment = ?, ReviewDate = GETDATE() " +
-                     "WHERE ReviewID = ? AND UserID = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, rating);
-            ps.setString(2, comment);
-            ps.setInt(3, reviewId);
-            ps.setInt(4, userId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /** Soft-delete (ẩn review, giữ dữ liệu). */
+    /**
+     * Soft-delete review (Status = 0).
+     */
     public boolean deleteReview(int reviewId) {
         String sql = "UPDATE Reviews SET Status = 0 WHERE ReviewID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -91,20 +63,9 @@ public class ReviewDAO extends DBContext {
         return false;
     }
 
-    /** Admin: ẩn/hiện review mà không xoá. */
-    public boolean updateStatus(int reviewId, boolean status) {
-        String sql = "UPDATE Reviews SET Status = ? WHERE ReviewID = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setBoolean(1, status);
-            ps.setInt(2, reviewId);
-            return ps.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /** Xoá cứng (dùng khi cần, chỉ admin). */
+    /**
+     * Xóa cứng (dùng khi cần).
+     */
     public boolean hardDeleteReview(int reviewId) {
         String sql = "DELETE FROM Reviews WHERE ReviewID = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -114,6 +75,31 @@ public class ReviewDAO extends DBContext {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * Lấy review active theo hoa.
+     */
+    public List<Review> getReviewByFlower(int flowerId) {
+        List<Review> list = new ArrayList<>();
+        String sql = "SELECT * FROM Reviews "
+                + "WHERE FlowerID = ? AND Status = 1 "
+                + "ORDER BY ReviewDate DESC";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, flowerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public List<Review> getReviewsByFlowerId(int flowerId) {
+        return getReviewByFlower(flowerId);
     }
 
     public Review getReviewById(int reviewId) {
@@ -131,105 +117,20 @@ public class ReviewDAO extends DBContext {
         return null;
     }
 
-    /** Toàn bộ review đang hiển thị của 1 hoa, mới nhất trước (không phân trang). */
-    public List<Review> getReviewsByFlowerId(int flowerId) {
-        List<Review> list = new ArrayList<>();
-        String sql = "SELECT * FROM Reviews WHERE FlowerID = ? AND Status = 1 ORDER BY ReviewDate DESC";
+    public double getAverageRating(int flowerId) {
+        String sql = "SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews "
+                + "WHERE FlowerID = ? AND Status = 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, flowerId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapRow(rs));
+                if (rs.next()) {
+                    return rs.getDouble(1);
                 }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    /** Bản có phân trang - dùng khi 1 hoa có quá nhiều review. */
-    public List<Review> getReviewsByFlowerId(int flowerId, int page, int pageSize) {
-        List<Review> list = new ArrayList<>();
-        String sql = "SELECT * FROM Reviews WHERE FlowerID = ? AND Status = 1 " +
-                     "ORDER BY ReviewDate DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, flowerId);
-            ps.setInt(2, PaginationUtil.getOffset(page, pageSize));
-            ps.setInt(3, pageSize);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    /** Lịch sử review của 1 khách hàng, dùng cho trang "Review của tôi". */
-    public List<Review> getReviewsByUser(int userId) {
-        List<Review> list = new ArrayList<>();
-        String sql = "SELECT * FROM Reviews WHERE UserID = ? ORDER BY ReviewDate DESC";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    /** Trang kiểm duyệt của admin: tất cả review bất kể status. */
-    public List<Review> getAllReviews(int page, int pageSize) {
-        List<Review> list = new ArrayList<>();
-        String sql = "SELECT * FROM Reviews ORDER BY ReviewDate DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, PaginationUtil.getOffset(page, pageSize));
-            ps.setInt(2, pageSize);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(mapRow(rs));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
-
-    public int countAllReviews() {
-        String sql = "SELECT COUNT(*) FROM Reviews";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return 0;
-    }
-
-    public double getAverageRating(int flowerId) {
-        String sql = "SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews WHERE FlowerID = ? AND Status = 1";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, flowerId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    double avg = rs.getDouble(1);
-                    return rs.wasNull() ? 0.0 : avg;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0.0;
     }
 
     public int getReviewCount(int flowerId) {
