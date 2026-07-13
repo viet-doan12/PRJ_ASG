@@ -24,12 +24,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "ReportServlet", urlPatterns = {"/admin/reports"})
 public class ReportServlet extends HttpServlet {
 
-    private ReportDAO reportDAO;
-
-    @Override
-    public void init() throws ServletException {
-        reportDAO = new ReportDAO();
-    }
+    // Không còn field cấp lớp / init() - reportDAO được tạo mới và đóng lại
+    // ngay trong từng request.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -58,6 +54,8 @@ public class ReportServlet extends HttpServlet {
         int year = parsePositiveInt(request.getParameter("year"), currentYear);
         int limit = parsePositiveInt(request.getParameter("limit"), 10);
         int threshold = parsePositiveInt(request.getParameter("threshold"), 10);
+
+        ReportDAO reportDAO = new ReportDAO();
 
         List<Map<String, Object>> reportData = new ArrayList<>();
         BigDecimal totalRevenue = BigDecimal.ZERO;
@@ -102,7 +100,6 @@ public class ReportServlet extends HttpServlet {
             reportDAO.closeConnection();
         }
 
-        // Pre-format money fields for JSP
         if ("revenue".equals(type)) {
             for (Map<String, Object> row : reportData) {
                 Object rev = row.get("revenue");

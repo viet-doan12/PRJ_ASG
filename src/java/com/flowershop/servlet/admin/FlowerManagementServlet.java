@@ -33,14 +33,8 @@ public class FlowerManagementServlet extends HttpServlet {
     private static final String LIST_VIEW = "/WEB-INF/jsp/admin/flowers.jsp";
     private static final String FORM_VIEW = "/WEB-INF/jsp/admin/flower-form.jsp";
 
-    private FlowerDAO flowerDAO;
-    private CategoryDAO categoryDAO;
-
-    @Override
-    public void init() throws ServletException {
-        flowerDAO = new FlowerDAO();
-        categoryDAO = new CategoryDAO();
-    }
+    // Không còn field cấp lớp / init() - DAO được tạo mới và đóng lại
+    // ngay trong từng request, tránh giữ 2 connection sống suốt vòng đời servlet.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -57,37 +51,46 @@ public class FlowerManagementServlet extends HttpServlet {
     private void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String action = request.getParameter("action");
-        if (action == null) {
-            action = "list";
-        }
+        FlowerDAO flowerDAO = new FlowerDAO();
+        CategoryDAO categoryDAO = new CategoryDAO();
 
-        switch (action) {
-            case "list":
-                listFlowers(request, response);
-                break;
-            case "add":
-                showAddForm(request, response);
-                break;
-            case "insert":
-                insertFlower(request, response);
-                break;
-            case "edit":
-                showEditForm(request, response);
-                break;
-            case "update":
-                updateFlower(request, response);
-                break;
-            case "delete":
-                deleteFlower(request, response);
-                break;
-            default:
-                listFlowers(request, response);
-                break;
+        try {
+            String action = request.getParameter("action");
+            if (action == null) {
+                action = "list";
+            }
+
+            switch (action) {
+                case "list":
+                    listFlowers(request, response, flowerDAO, categoryDAO);
+                    break;
+                case "add":
+                    showAddForm(request, response, categoryDAO);
+                    break;
+                case "insert":
+                    insertFlower(request, response, flowerDAO, categoryDAO);
+                    break;
+                case "edit":
+                    showEditForm(request, response, flowerDAO, categoryDAO);
+                    break;
+                case "update":
+                    updateFlower(request, response, flowerDAO, categoryDAO);
+                    break;
+                case "delete":
+                    deleteFlower(request, response, flowerDAO);
+                    break;
+                default:
+                    listFlowers(request, response, flowerDAO, categoryDAO);
+                    break;
+            }
+        } finally {
+            flowerDAO.closeConnection();
+            categoryDAO.closeConnection();
         }
     }
 
-    private void listFlowers(HttpServletRequest request, HttpServletResponse response)
+    private void listFlowers(HttpServletRequest request, HttpServletResponse response,
+            FlowerDAO flowerDAO, CategoryDAO categoryDAO)
             throws ServletException, IOException {
 
         String keyword = request.getParameter("keyword");
@@ -103,22 +106,23 @@ public class FlowerManagementServlet extends HttpServlet {
         }
 
         request.setAttribute("flowerList", flowers);
-        loadCategories(request);
+        loadCategories(request, categoryDAO);
         request.getRequestDispatcher(LIST_VIEW).forward(request, response);
     }
 
-    private void showAddForm(HttpServletRequest request, HttpServletResponse response)
+    private void showAddForm(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
 
-        loadCategories(request);
+        loadCategories(request, categoryDAO);
         request.getRequestDispatcher(FORM_VIEW).forward(request, response);
     }
 
-    private void insertFlower(HttpServletRequest request, HttpServletResponse response)
+    private void insertFlower(HttpServletRequest request, HttpServletResponse response,
+            FlowerDAO flowerDAO, CategoryDAO categoryDAO)
             throws ServletException, IOException {
 
         try {
-            Flower f = buildFlowerFromRequest(request, false);
+            Flower f = buildFlowerFromRequest(request, false, flowerDAO);
             int newId = flowerDAO.insertFlower(f);
 
             if (newId > 0) {
@@ -126,17 +130,18 @@ public class FlowerManagementServlet extends HttpServlet {
             } else {
                 request.setAttribute("error", "Insert failed. Please try again.");
                 request.setAttribute("flower", f);
-                loadCategories(request);
+                loadCategories(request, categoryDAO);
                 request.getRequestDispatcher(FORM_VIEW).forward(request, response);
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid price, stock quantity, or category ID.");
-            loadCategories(request);
+            loadCategories(request, categoryDAO);
             request.getRequestDispatcher(FORM_VIEW).forward(request, response);
         }
     }
 
-    private void showEditForm(HttpServletRequest request, HttpServletResponse response)
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response,
+            FlowerDAO flowerDAO, CategoryDAO categoryDAO)
             throws ServletException, IOException {
 
         try {
@@ -149,18 +154,19 @@ public class FlowerManagementServlet extends HttpServlet {
             }
 
             request.setAttribute("flower", f);
-            loadCategories(request);
+            loadCategories(request, categoryDAO);
             request.getRequestDispatcher(FORM_VIEW).forward(request, response);
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/admin/flowers?action=list&msg=invalidId");
         }
     }
 
-    private void updateFlower(HttpServletRequest request, HttpServletResponse response)
+    private void updateFlower(HttpServletRequest request, HttpServletResponse response,
+            FlowerDAO flowerDAO, CategoryDAO categoryDAO)
             throws ServletException, IOException {
 
         try {
-            Flower f = buildFlowerFromRequest(request, true);
+            Flower f = buildFlowerFromRequest(request, true, flowerDAO);
             boolean success = flowerDAO.updateFlower(f);
 
             if (success) {
@@ -168,17 +174,17 @@ public class FlowerManagementServlet extends HttpServlet {
             } else {
                 request.setAttribute("error", "Update failed. Please try again.");
                 request.setAttribute("flower", f);
-                loadCategories(request);
+                loadCategories(request, categoryDAO);
                 request.getRequestDispatcher(FORM_VIEW).forward(request, response);
             }
         } catch (NumberFormatException e) {
             request.setAttribute("error", "Invalid flower ID, price, stock quantity, or category ID.");
-            loadCategories(request);
+            loadCategories(request, categoryDAO);
             request.getRequestDispatcher(FORM_VIEW).forward(request, response);
         }
     }
 
-    private void deleteFlower(HttpServletRequest request, HttpServletResponse response)
+    private void deleteFlower(HttpServletRequest request, HttpServletResponse response, FlowerDAO flowerDAO)
             throws ServletException, IOException {
 
         try {
@@ -192,8 +198,7 @@ public class FlowerManagementServlet extends HttpServlet {
         }
     }
 
-
-    private Flower buildFlowerFromRequest(HttpServletRequest request, boolean isUpdate)
+    private Flower buildFlowerFromRequest(HttpServletRequest request, boolean isUpdate, FlowerDAO flowerDAO)
             throws IOException, ServletException {
 
         Flower f = new Flower();
@@ -244,7 +249,7 @@ public class FlowerManagementServlet extends HttpServlet {
         return uniqueName;
     }
 
-    private void loadCategories(HttpServletRequest request) {
+    private void loadCategories(HttpServletRequest request, CategoryDAO categoryDAO) {
         List<Category> categories = categoryDAO.getActiveCategories();
         request.setAttribute("categoryList", categories);
     }

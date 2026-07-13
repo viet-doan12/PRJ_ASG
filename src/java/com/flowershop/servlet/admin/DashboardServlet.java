@@ -22,12 +22,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @WebServlet(name = "DashboardServlet", urlPatterns = {"/admin/dashboard"})
 public class DashboardServlet extends HttpServlet {
 
-    private ReportDAO reportDAO;
-
-    @Override
-    public void init() throws ServletException {
-        reportDAO = new ReportDAO();
-    }
+    // Không còn field cấp lớp / init() - reportDAO được tạo mới và đóng lại
+    // ngay trong từng request.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -45,6 +41,8 @@ public class DashboardServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
+
+        ReportDAO reportDAO = new ReportDAO();
 
         int totalUsers = 0;
         int activeUsers = 0;
@@ -89,7 +87,6 @@ public class DashboardServlet extends HttpServlet {
             reportDAO.closeConnection();
         }
 
-        // Pre-format money fields for stable display in JSP
         for (Map<String, Object> row : topFlowers) {
             row.put("revenueDisplay", formatVnd(row.get("revenue")));
         }

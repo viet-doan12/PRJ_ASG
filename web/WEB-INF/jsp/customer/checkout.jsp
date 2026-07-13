@@ -5,6 +5,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
@@ -67,7 +68,7 @@
 
     <c:if test="${not empty sessionScope.session_error}">
         <div class="alert alert-danger alert-dismissible fade show">
-            ${sessionScope.session_error}
+            <c:out value="${sessionScope.session_error}"/>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <c:remove var="session_error" scope="session"/>
@@ -75,7 +76,7 @@
 
     <c:if test="${not empty sessionScope.session_message}">
         <div class="alert alert-success alert-dismissible fade show">
-            ${sessionScope.session_message}
+            <c:out value="${sessionScope.session_message}"/>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <c:remove var="session_message" scope="session"/>
@@ -96,14 +97,14 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
                         <input type="text" name="receiverName" class="form-control"
-                               value="${sessionScope.user.fullName}"
+                               value="${fn:escapeXml(sessionScope.user.fullName)}"
                                placeholder="Nguyễn Văn A" required minlength="2" maxlength="100">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
                         <input type="text" name="receiverPhone" class="form-control"
-                               value="${sessionScope.user.phone}"
+                               value="${fn:escapeXml(sessionScope.user.phone)}"
                                placeholder="09xxxxxxxx" pattern="0\d{9}" required
                                title="Số điện thoại gồm 10 số, bắt đầu bằng 0">
                     </div>
@@ -127,7 +128,7 @@
                                     <span>Dùng địa chỉ đã lưu trong hồ sơ</span>
                                 </label>
                                 <div id="savedAddressBox" class="ps-4 mb-2 text-muted">
-                                    <i class="bi bi-geo-alt me-1"></i>${sessionScope.user.address}
+                                    <i class="bi bi-geo-alt me-1"></i><c:out value="${sessionScope.user.address}"/>
                                 </div>
 
                                 <label class="address-mode-option d-flex align-items-center gap-2">
@@ -145,22 +146,16 @@
 
                     <div id="newAddressSection" class="${empty sessionScope.user.address ? '' : 'd-none'}">
                         <div class="row g-3 mb-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">Tỉnh/Thành phố <span class="text-danger">*</span></label>
                                 <select id="province" class="form-select">
                                     <option value="">-- Đang tải... --</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">Quận/Huyện <span class="text-danger">*</span></label>
-                                <select id="district" class="form-select" disabled>
-                                    <option value="">-- Chọn Tỉnh/Thành trước --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">Phường/Xã <span class="text-danger">*</span></label>
                                 <select id="ward" class="form-select" disabled>
-                                    <option value="">-- Chọn Quận/Huyện trước --</option>
+                                    <option value="">-- Chọn Tỉnh/Thành trước --</option>
                                 </select>
                             </div>
                         </div>
@@ -249,7 +244,6 @@
     const API_BASE = "https://provinces.open-api.vn/api/v2";
 
     const provinceSelect = document.getElementById("province");
-    const districtSelect = document.getElementById("district");
     const wardSelect = document.getElementById("ward");
     const addressDetailInput = document.getElementById("addressDetail");
     const shippingAddressHidden = document.getElementById("shippingAddress");
@@ -258,12 +252,11 @@
     const modeSaved = document.getElementById("modeSaved");
     const modeNew = document.getElementById("modeNew");
     const savedAddressText = <c:choose>
-        <c:when test="${not empty sessionScope.user.address}">"${sessionScope.user.address}"</c:when>
+        <c:when test="${not empty sessionScope.user.address}">"${fn:escapeXml(sessionScope.user.address)}"</c:when>
         <c:otherwise>""</c:otherwise>
     </c:choose>;
 
     let selectedProvinceName = "";
-    let selectedDistrictName = "";
     let selectedWardName = "";
     let provincesLoaded = false;
 
@@ -315,36 +308,15 @@
 
     provinceSelect.addEventListener("change", function () {
         selectedProvinceName = this.options[this.selectedIndex]?.text || "";
-        resetSelect(districtSelect, "-- Đang tải... --");
-        resetSelect(wardSelect, "-- Chọn Quận/Huyện trước --");
+        resetSelect(wardSelect, "-- Đang tải... --");
 
         const provinceCode = this.value;
         if (!provinceCode) {
-            resetSelect(districtSelect, "-- Chọn Tỉnh/Thành trước --");
+            resetSelect(wardSelect, "-- Chọn Tỉnh/Thành trước --");
             return;
         }
 
         fetch(API_BASE + "/p/" + provinceCode + "?depth=2")
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                fillSelect(districtSelect, data.districts || [], "-- Chọn Quận/Huyện --");
-            })
-            .catch(function () {
-                districtSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
-            });
-    });
-
-    districtSelect.addEventListener("change", function () {
-        selectedDistrictName = this.options[this.selectedIndex]?.text || "";
-        resetSelect(wardSelect, "-- Đang tải... --");
-
-        const districtCode = this.value;
-        if (!districtCode) {
-            resetSelect(wardSelect, "-- Chọn Quận/Huyện trước --");
-            return;
-        }
-
-        fetch(API_BASE + "/d/" + districtCode + "?depth=2")
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 fillSelect(wardSelect, data.wards || [], "-- Chọn Phường/Xã --");
@@ -367,10 +339,10 @@
             return; // cho submit tiếp tục bình thường
         }
 
-        // Chế độ nhập địa chỉ mới -> bắt buộc đủ 3 cấp + địa chỉ cụ thể
-        if (!provinceSelect.value || !districtSelect.value || !wardSelect.value) {
+        // Chế độ nhập địa chỉ mới -> bắt buộc chọn Tỉnh/Thành + Phường/Xã + địa chỉ cụ thể
+        if (!provinceSelect.value || !wardSelect.value) {
             e.preventDefault();
-            alert("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện và Phường/Xã.");
+            alert("Vui lòng chọn đầy đủ Tỉnh/Thành phố và Phường/Xã.");
             return;
         }
         if (!addressDetailInput.value.trim()) {
@@ -382,7 +354,6 @@
         const fullAddress = [
             addressDetailInput.value.trim(),
             selectedWardName,
-            selectedDistrictName,
             selectedProvinceName
         ].filter(Boolean).join(", ");
 
@@ -391,4 +362,4 @@
 })();
 </script>
 
-<jsp:include page="/WEB-INF/jsp/common/footer.jsp" />
+<jsp:include page="/WEB-INF/jsp/common/footer.jsp" /></parameter>

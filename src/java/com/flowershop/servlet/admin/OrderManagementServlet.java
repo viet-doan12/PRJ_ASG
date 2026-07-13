@@ -27,16 +27,8 @@ public class OrderManagementServlet extends HttpServlet {
     private static final String DETAIL_VIEW = "/WEB-INF/jsp/admin/order-detail.jsp";
     private static final int PAGE_SIZE = 10;
 
-    private OrderDAO orderDAO;
-    private OrderDetailDAO orderDetailDAO;
-    private FlowerDAO flowerDAO;
-
-    @Override
-    public void init() throws ServletException {
-        orderDAO = new OrderDAO();
-        orderDetailDAO = new OrderDetailDAO();
-        flowerDAO = new FlowerDAO();
-    }
+    // Không còn field cấp lớp / init() - 3 DAO được tạo mới và đóng lại
+    // ngay trong từng request.
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -56,30 +48,40 @@ public class OrderManagementServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
-        String action = request.getParameter("action");
-        if (action == null) {
-            action = "list";
-        }
+        OrderDAO orderDAO = new OrderDAO();
+        OrderDetailDAO orderDetailDAO = new OrderDetailDAO();
+        FlowerDAO flowerDAO = new FlowerDAO();
 
-        switch (action) {
-            case "detail":
-                showOrderDetail(request, response);
-                break;
-            case "updateStatus":
-                updateStatus(request, response);
-                break;
-            case "delete":
-                deleteOrder(request, response);
-                break;
-            case "list":
-            default:
-                listOrders(request, response);
-                break;
+        try {
+            String action = request.getParameter("action");
+            if (action == null) {
+                action = "list";
+            }
+
+            switch (action) {
+                case "detail":
+                    showOrderDetail(request, response, orderDAO, orderDetailDAO, flowerDAO);
+                    break;
+                case "updateStatus":
+                    updateStatus(request, response, orderDAO);
+                    break;
+                case "delete":
+                    deleteOrder(request, response, orderDAO);
+                    break;
+                case "list":
+                default:
+                    listOrders(request, response, orderDAO);
+                    break;
+            }
+        } finally {
+            orderDAO.closeConnection();
+            orderDetailDAO.closeConnection();
+            flowerDAO.closeConnection();
         }
     }
 
     // ================= action=list =================
-    private void listOrders(HttpServletRequest request, HttpServletResponse response)
+    private void listOrders(HttpServletRequest request, HttpServletResponse response, OrderDAO orderDAO)
             throws ServletException, IOException {
 
         String keyword = request.getParameter("keyword");
@@ -116,7 +118,8 @@ public class OrderManagementServlet extends HttpServlet {
     }
 
     // ================= action=detail =================
-    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response)
+    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response,
+            OrderDAO orderDAO, OrderDetailDAO orderDetailDAO, FlowerDAO flowerDAO)
             throws ServletException, IOException {
 
         String idParam = request.getParameter("id");
@@ -137,8 +140,6 @@ public class OrderManagementServlet extends HttpServlet {
 
             List<OrderDetail> detailList = orderDetailDAO.getOrderDetailsByOrderId(orderId);
 
-            // Load flower name/image for each line item (order-detail.jsp reads
-            // requestScope["flowerName_"+flowerID] and requestScope["flowerImage_"+flowerID])
             for (OrderDetail d : detailList) {
                 Flower f = flowerDAO.getFlowerById(d.getFlowerID());
                 if (f != null) {
@@ -159,7 +160,7 @@ public class OrderManagementServlet extends HttpServlet {
     }
 
     // ================= action=updateStatus =================
-    private void updateStatus(HttpServletRequest request, HttpServletResponse response)
+    private void updateStatus(HttpServletRequest request, HttpServletResponse response, OrderDAO orderDAO)
             throws IOException {
 
         String idParam = request.getParameter("orderID");
@@ -180,7 +181,7 @@ public class OrderManagementServlet extends HttpServlet {
     }
 
     // ================= action=delete =================
-    private void deleteOrder(HttpServletRequest request, HttpServletResponse response)
+    private void deleteOrder(HttpServletRequest request, HttpServletResponse response, OrderDAO orderDAO)
             throws IOException {
 
         String idParam = request.getParameter("orderID");

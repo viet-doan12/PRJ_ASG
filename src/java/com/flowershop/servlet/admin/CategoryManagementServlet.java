@@ -14,81 +14,78 @@ import jakarta.servlet.http.HttpSession;
 @WebServlet(name = "CategoryServlet", urlPatterns = {"/admin/categories"})
 public class CategoryManagementServlet extends HttpServlet {
 
-    private CategoryDAO categoryDAO;
+    // Không còn field cấp lớp / init() - mỗi request tự tạo và tự đóng DAO riêng của nó.
 
     @Override
-    public void init() throws ServletException {
-        categoryDAO = new CategoryDAO();
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
+        String action = request.getParameter("action");
+        if (action == null) {
+            action = "list";
+        }
+
+        CategoryDAO categoryDAO = new CategoryDAO();
+        try {
+            switch (action) {
+                case "add":
+                    showAddForm(request, response);
+                    break;
+                case "edit":
+                    showEditForm(request, response, categoryDAO);
+                    break;
+                case "delete":
+                    deleteCategory(request, response, categoryDAO);
+                    break;
+                case "list":
+                default:
+                    listCategories(request, response, categoryDAO);
+                    break;
+            }
+        } finally {
+            categoryDAO.closeConnection();
+        }
     }
 
     @Override
-protected void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-    request.setCharacterEncoding("UTF-8");
-    response.setCharacterEncoding("UTF-8");
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
 
-    String action = request.getParameter("action");
-    if (action == null) {
-        action = "list";
-    }
-
-    try {
-        switch (action) {
-            case "add":
-                showAddForm(request, response);
-                break;
-            case "edit":
-                showEditForm(request, response);
-                break;
-            case "delete":
-                deleteCategory(request, response);
-                break;
-            case "list":
-            default:
-                listCategories(request, response);
-                break;
+        String action = request.getParameter("action");
+        if (action == null) {
+            action = "list";
         }
-    } finally {
-        categoryDAO.closeConnection();
-    }
-}
 
-@Override
-protected void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-    request.setCharacterEncoding("UTF-8");
-    response.setCharacterEncoding("UTF-8");
-
-    String action = request.getParameter("action");
-    if (action == null) {
-        action = "list";
-    }
-
-    try {
-        switch (action) {
-            case "insert":
-                insertCategory(request, response);
-                break;
-            case "update":
-                updateCategory(request, response);
-                break;
-            default:
-                listCategories(request, response);
-                break;
+        CategoryDAO categoryDAO = new CategoryDAO();
+        try {
+            switch (action) {
+                case "insert":
+                    insertCategory(request, response, categoryDAO);
+                    break;
+                case "update":
+                    updateCategory(request, response, categoryDAO);
+                    break;
+                default:
+                    listCategories(request, response, categoryDAO);
+                    break;
+            }
+        } finally {
+            categoryDAO.closeConnection();
         }
-    } finally {
-        categoryDAO.closeConnection();
     }
-}
 
-    private void listCategories(HttpServletRequest request, HttpServletResponse response)
+    private void listCategories(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
         String search = request.getParameter("search");
         String pageStr = request.getParameter("page");
-        
+
         int page = 1;
-        int pageSize = 5; // Số phần tử trên mỗi trang
-        
+        int pageSize = 5;
+
         if (pageStr != null && !pageStr.isEmpty()) {
             try {
                 page = Integer.parseInt(pageStr);
@@ -97,11 +94,11 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 page = 1;
             }
         }
-        
+
         int offset = (page - 1) * pageSize;
         List<Category> categoryList;
         int totalRecords;
-        
+
         if (search != null && !search.trim().isEmpty()) {
             search = search.trim();
             categoryList = categoryDAO.searchCategoriesByPage(search, offset, pageSize);
@@ -110,19 +107,18 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
             categoryList = categoryDAO.getCategoriesByPage(offset, pageSize);
             totalRecords = categoryDAO.getTotalCategories();
         }
-        
+
         int totalPages = (int) Math.ceil((double) totalRecords / pageSize);
         if (totalPages == 0) {
             totalPages = 1;
         }
-        
+
         request.setAttribute("categoryList", categoryList);
         request.setAttribute("currentPage", page);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("search", search);
         request.setAttribute("totalRecords", totalRecords);
-        
-        // Chuyển tiếp tới trang categories.jsp trong WEB-INF
+
         request.getRequestDispatcher("/WEB-INF/jsp/admin/categories.jsp").forward(request, response);
     }
 
@@ -133,11 +129,11 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         request.getRequestDispatcher("/WEB-INF/jsp/admin/category-form.jsp").forward(request, response);
     }
 
-    private void showEditForm(HttpServletRequest request, HttpServletResponse response)
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
         HttpSession session = request.getSession();
-        
+
         if (idStr == null || idStr.isEmpty()) {
             session.setAttribute("toastType", "danger");
             session.setAttribute("toastMessage", "Invalid Category ID!");
@@ -165,12 +161,12 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         }
     }
 
-    private void insertCategory(HttpServletRequest request, HttpServletResponse response)
+    private void insertCategory(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
         String categoryName = request.getParameter("categoryName");
         String description = request.getParameter("description");
         String statusStr = request.getParameter("status");
-        
+
         boolean status = "true".equals(statusStr) || "on".equals(statusStr);
         HttpSession session = request.getSession();
 
@@ -198,7 +194,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         }
     }
 
-    private void updateCategory(HttpServletRequest request, HttpServletResponse response)
+    private void updateCategory(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
         String idStr = request.getParameter("categoryID");
         String categoryName = request.getParameter("categoryName");
@@ -210,7 +206,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
 
         try {
             int id = Integer.parseInt(idStr);
-            
+
             if (categoryName == null || categoryName.trim().isEmpty()) {
                 request.setAttribute("error", "Category name cannot be empty!");
                 Category category = new Category(id, categoryName, description, status);
@@ -223,7 +219,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
 
             Category category = new Category(id, categoryName.trim(), description != null ? description.trim() : "", status);
             boolean success = categoryDAO.updateCategory(category);
-            
+
             if (success) {
                 session.setAttribute("toastType", "success");
                 session.setAttribute("toastMessage", "Category updated successfully!");
@@ -242,7 +238,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         }
     }
 
-    private void deleteCategory(HttpServletRequest request, HttpServletResponse response)
+    private void deleteCategory(HttpServletRequest request, HttpServletResponse response, CategoryDAO categoryDAO)
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
         HttpSession session = request.getSession();

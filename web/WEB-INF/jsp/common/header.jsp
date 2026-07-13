@@ -21,6 +21,27 @@
     <!-- CSS -->
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/style.css">
+
+    <!-- Sticky footer: đẩy footer xuống đáy khi nội dung ngắn -->
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 
 <body>
@@ -178,3 +199,6 @@
 
 <!-- Hiển thị Message chung -->
 <jsp:include page="/WEB-INF/jsp/common/message.jsp"/>
+
+<!-- Bọc toàn bộ nội dung chính của từng trang -->
+<div class="main-content">

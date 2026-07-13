@@ -17,84 +17,85 @@ import jakarta.servlet.http.HttpSession;
 @WebServlet(name = "UserServlet", urlPatterns = {"/admin/users"})
 public class UserManagementServlet extends HttpServlet {
 
-    private UserDAO userDAO;
-    private RoleDAO roleDAO;
+    // Không còn field cấp lớp / init() - userDAO, roleDAO được tạo mới
+    // và đóng lại ngay trong từng request.
 
     @Override
-    public void init() throws ServletException {
-        userDAO = new UserDAO();
-        roleDAO = new RoleDAO();
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
+        String action = request.getParameter("action");
+        if (action == null || action.isEmpty()) {
+            action = "list";
+        }
+
+        UserDAO userDAO = new UserDAO();
+        RoleDAO roleDAO = new RoleDAO();
+
+        try {
+            switch (action) {
+                case "add":
+                    showAddForm(request, response, roleDAO);
+                    break;
+                case "edit":
+                    showEditForm(request, response, userDAO, roleDAO);
+                    break;
+                case "lock":
+                    lockUser(request, response, userDAO);
+                    break;
+                case "unlock":
+                    unlockUser(request, response, userDAO);
+                    break;
+                case "delete":
+                    lockUser(request, response, userDAO);
+                    break;
+                case "list":
+                default:
+                    listUsers(request, response, userDAO, roleDAO);
+                    break;
+            }
+        } finally {
+            userDAO.closeConnection();
+            roleDAO.closeConnection();
+        }
     }
 
     @Override
-protected void doGet(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-    request.setCharacterEncoding("UTF-8");
-    response.setCharacterEncoding("UTF-8");
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
 
-    String action = request.getParameter("action");
-    if (action == null || action.isEmpty()) {
-        action = "list";
-    }
-
-    try {
-        switch (action) {
-            case "add":
-                showAddForm(request, response);
-                break;
-            case "edit":
-                showEditForm(request, response);
-                break;
-            case "lock":
-                lockUser(request, response);
-                break;
-            case "unlock":
-                unlockUser(request, response);
-                break;
-            case "delete":
-                lockUser(request, response);
-                break;
-            case "list":
-            default:
-                listUsers(request, response);
-                break;
+        String action = request.getParameter("action");
+        if (action == null || action.isEmpty()) {
+            action = "list";
         }
-    } finally {
-        userDAO.closeConnection();
-        roleDAO.closeConnection();
-    }
-}
 
-@Override
-protected void doPost(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException {
-    request.setCharacterEncoding("UTF-8");
-    response.setCharacterEncoding("UTF-8");
+        UserDAO userDAO = new UserDAO();
+        RoleDAO roleDAO = new RoleDAO();
 
-    String action = request.getParameter("action");
-    if (action == null || action.isEmpty()) {
-        action = "list";
-    }
-
-    try {
-        switch (action) {
-            case "insert":
-                insertUser(request, response);
-                break;
-            case "update":
-                updateUser(request, response);
-                break;
-            default:
-                listUsers(request, response);
-                break;
+        try {
+            switch (action) {
+                case "insert":
+                    insertUser(request, response, userDAO, roleDAO);
+                    break;
+                case "update":
+                    updateUser(request, response, userDAO, roleDAO);
+                    break;
+                default:
+                    listUsers(request, response, userDAO, roleDAO);
+                    break;
+            }
+        } finally {
+            userDAO.closeConnection();
+            roleDAO.closeConnection();
         }
-    } finally {
-        userDAO.closeConnection();
-        roleDAO.closeConnection();
     }
-}
 
-    private void listUsers(HttpServletRequest request, HttpServletResponse response)
+    private void listUsers(HttpServletRequest request, HttpServletResponse response,
+            UserDAO userDAO, RoleDAO roleDAO)
             throws ServletException, IOException {
         String search = request.getParameter("search");
         if (search != null) {
@@ -143,7 +144,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         request.getRequestDispatcher("/WEB-INF/jsp/admin/users.jsp").forward(request, response);
     }
 
-    private void showAddForm(HttpServletRequest request, HttpServletResponse response)
+    private void showAddForm(HttpServletRequest request, HttpServletResponse response, RoleDAO roleDAO)
             throws ServletException, IOException {
         request.setAttribute("formTitle", "Add New User");
         request.setAttribute("action", "insert");
@@ -156,7 +157,8 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         request.getRequestDispatcher("/WEB-INF/jsp/admin/user-form.jsp").forward(request, response);
     }
 
-    private void showEditForm(HttpServletRequest request, HttpServletResponse response)
+    private void showEditForm(HttpServletRequest request, HttpServletResponse response,
+            UserDAO userDAO, RoleDAO roleDAO)
             throws ServletException, IOException {
         String idStr = request.getParameter("id");
         HttpSession session = request.getSession();
@@ -175,7 +177,6 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 response.sendRedirect(request.getContextPath() + "/admin/users?action=list");
                 return;
             }
-            // Do not expose hashed password in form
             user.setPassword(null);
             request.setAttribute("user", user);
             request.setAttribute("formTitle", "Edit User");
@@ -188,7 +189,8 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         }
     }
 
-    private void insertUser(HttpServletRequest request, HttpServletResponse response)
+    private void insertUser(HttpServletRequest request, HttpServletResponse response,
+            UserDAO userDAO, RoleDAO roleDAO)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
 
@@ -214,11 +216,11 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
             formUser.setRoleID(roleId);
         }
 
-        String error = validateUserForm(formUser, password, true, null);
+        String error = validateUserForm(formUser, password, true, null, userDAO, roleDAO);
         if (error != null) {
             request.setAttribute("error", error);
             request.setAttribute("user", formUser);
-            showAddForm(request, response);
+            showAddForm(request, response, roleDAO);
             return;
         }
 
@@ -230,11 +232,12 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         } else {
             request.setAttribute("error", "Failed to create user! Email may already exist.");
             request.setAttribute("user", formUser);
-            showAddForm(request, response);
+            showAddForm(request, response, roleDAO);
         }
     }
 
-    private void updateUser(HttpServletRequest request, HttpServletResponse response)
+    private void updateUser(HttpServletRequest request, HttpServletResponse response,
+            UserDAO userDAO, RoleDAO roleDAO)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
 
@@ -265,7 +268,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 formUser.setRoleID(roleId);
             }
 
-            String error = validateUserForm(formUser, password, false, userId);
+            String error = validateUserForm(formUser, password, false, userId, userDAO, roleDAO);
             if (error != null) {
                 request.setAttribute("error", error);
                 request.setAttribute("user", formUser);
@@ -278,7 +281,6 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
 
             boolean success = userDAO.updateUser(formUser);
             if (success) {
-                // Optional password change on update
                 if (password != null && !password.trim().isEmpty()) {
                     userDAO.updatePassword(userId, ValidationUtil.hashPassword(password.trim()));
                 }
@@ -298,7 +300,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         }
     }
 
-    private void lockUser(HttpServletRequest request, HttpServletResponse response)
+    private void lockUser(HttpServletRequest request, HttpServletResponse response, UserDAO userDAO)
             throws IOException {
         HttpSession session = request.getSession();
         String idStr = request.getParameter("id");
@@ -323,7 +325,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         response.sendRedirect(request.getContextPath() + "/admin/users?action=list");
     }
 
-    private void unlockUser(HttpServletRequest request, HttpServletResponse response)
+    private void unlockUser(HttpServletRequest request, HttpServletResponse response, UserDAO userDAO)
             throws IOException {
         HttpSession session = request.getSession();
         String idStr = request.getParameter("id");
@@ -348,11 +350,8 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
         response.sendRedirect(request.getContextPath() + "/admin/users?action=list");
     }
 
-    /**
-     * Validate form fields. passwordRequired=true for insert.
-     * currentUserId used on update for email uniqueness check.
-     */
-    private String validateUserForm(User user, String password, boolean passwordRequired, Integer currentUserId) {
+    private String validateUserForm(User user, String password, boolean passwordRequired,
+            Integer currentUserId, UserDAO userDAO, RoleDAO roleDAO) {
         if (!ValidationUtil.isValidFullName(user.getFullName())) {
             return "Full name is required (2-100 characters).";
         }
@@ -368,7 +367,6 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
                 return "Email already exists!";
             }
         } else {
-            // Password optional on update
             if (password != null && !password.trim().isEmpty()
                     && !ValidationUtil.isValidPassword(password.trim())) {
                 return "Password must be at least 6 characters and contain both letters and numbers.";
@@ -380,7 +378,6 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
             }
         }
 
-        // Phone optional; if provided must be valid VN phone
         if (user.getPhone() != null && !user.getPhone().isEmpty()
                 && !ValidationUtil.isValidPhone(user.getPhone())) {
             return "Phone must be a valid Vietnamese number (10 digits, starts with 0).";
