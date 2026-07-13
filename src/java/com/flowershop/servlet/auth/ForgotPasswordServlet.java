@@ -43,18 +43,13 @@ public class ForgotPasswordServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String email = request.getParameter("email");
         email = email == null ? "" : email.trim();
-
         request.setAttribute("email", email);
 
-        // ==========================
-        // Validate Email
-        // ==========================
         if (!ValidationUtil.isValidEmail(email)) {
             request.setAttribute("error", "Email không hợp lệ.");
             forward(request, response);
@@ -62,82 +57,54 @@ public class ForgotPasswordServlet extends HttpServlet {
         }
 
         UserDAO userDAO = new UserDAO();
-        User user = userDAO.getUserByEmail(email);
-
-        if (user == null) {
-            request.setAttribute("error", "Email chưa được đăng ký.");
-            forward(request, response);
-            return;
-        }
-
-        if (!user.isStatus()) {
-            request.setAttribute("error",
-                    "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
-            forward(request, response);
-            return;
-        }
-
-        // ==========================
-        // Sinh OTP
-        // ==========================
-        String otp = OTPUtil.generateOTP();
-        long expireTime = OTPUtil.getExpireTime();
-
-        // ==========================
-        // Gửi Email
-        // ==========================
         try {
+            User user = userDAO.getUserByEmail(email);
 
-            EmailUtil.sendOTP(email, otp);
+            if (user == null) {
+                request.setAttribute("error", "Email chưa được đăng ký.");
+                forward(request, response);
+                return;
+            }
 
-        } catch (MessagingException ex) {
+            if (!user.isStatus()) {
+                request.setAttribute("error",
+                        "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+                forward(request, response);
+                return;
+            }
 
-            LOGGER.log(Level.SEVERE, "Cannot send OTP Email.", ex);
+            String otp = OTPUtil.generateOTP();
+            long expireTime = OTPUtil.getExpireTime();
 
-            request.setAttribute("error",
-                    "Không thể gửi Email xác nhận. Vui lòng thử lại.");
+            try {
+                EmailUtil.sendOTP(email, otp);
+            } catch (MessagingException ex) {
+                LOGGER.log(Level.SEVERE, "Cannot send OTP Email.", ex);
+                request.setAttribute("error", "Không thể gửi Email xác nhận. Vui lòng thử lại.");
+                forward(request, response);
+                return;
+            }
 
-            forward(request, response);
-            return;
+            HttpSession oldSession = request.getSession(false);
+            if (oldSession != null) {
+                oldSession.invalidate();
+            }
+
+            HttpSession session = request.getSession(true);
+            session.setMaxInactiveInterval(5 * 60);
+            session.setAttribute("resetUser", user);
+            session.setAttribute("otp", otp);
+            session.setAttribute("otpEmail", email);
+            session.setAttribute("otpType", "FORGOT_PASSWORD");
+            session.setAttribute("otpExpireTime", expireTime);
+            session.setAttribute("otpCreateTime", System.currentTimeMillis());
+            session.setAttribute("otpRetry", 0);
+            session.setAttribute("otpResend", 0);
+
+            response.sendRedirect(request.getContextPath() + "/verify-otp");
+        } finally {
+            userDAO.closeConnection();
         }
-
-        // ==================================================
-        // Làm mới Session (chống Session Fixation)
-        // ==================================================
-        HttpSession oldSession = request.getSession(false);
-
-        if (oldSession != null) {
-            oldSession.invalidate();
-        }
-
-        // ==================================================
-        // Tạo Session mới
-        // ==================================================
-        HttpSession session = request.getSession(true);
-
-        session.setMaxInactiveInterval(5 * 60);
-
-        // Lưu dữ liệu phục vụ VerifyOTPServlet
-        session.setAttribute("resetUser", user);
-
-        session.setAttribute("otp", otp);
-
-        session.setAttribute("otpEmail", email);
-
-        session.setAttribute("otpType", "FORGOT_PASSWORD");
-
-        session.setAttribute("otpExpireTime", expireTime);
-
-        session.setAttribute("otpCreateTime",
-                System.currentTimeMillis());
-
-        session.setAttribute("otpRetry", 0);
-
-        session.setAttribute("otpResend", 0);
-
-        // Sang trang nhập OTP
-        response.sendRedirect(
-                request.getContextPath() + "/verify-otp");
     }
 
     private void forward(HttpServletRequest request,
