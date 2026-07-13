@@ -22,16 +22,17 @@ public class CategoryManagementServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setCharacterEncoding("UTF-8");
-        
-        String action = request.getParameter("action");
-        if (action == null) {
-            action = "list";
-        }
+protected void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+    request.setCharacterEncoding("UTF-8");
+    response.setCharacterEncoding("UTF-8");
 
+    String action = request.getParameter("action");
+    if (action == null) {
+        action = "list";
+    }
+
+    try {
         switch (action) {
             case "add":
                 showAddForm(request, response);
@@ -47,19 +48,23 @@ public class CategoryManagementServlet extends HttpServlet {
                 listCategories(request, response);
                 break;
         }
+    } finally {
+        categoryDAO.closeConnection();
+    }
+}
+
+@Override
+protected void doPost(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
+    request.setCharacterEncoding("UTF-8");
+    response.setCharacterEncoding("UTF-8");
+
+    String action = request.getParameter("action");
+    if (action == null) {
+        action = "list";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setCharacterEncoding("UTF-8");
-        
-        String action = request.getParameter("action");
-        if (action == null) {
-            action = "list";
-        }
-
+    try {
         switch (action) {
             case "insert":
                 insertCategory(request, response);
@@ -71,7 +76,10 @@ public class CategoryManagementServlet extends HttpServlet {
                 listCategories(request, response);
                 break;
         }
+    } finally {
+        categoryDAO.closeConnection();
     }
+}
 
     private void listCategories(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
