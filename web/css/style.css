@@ -1,0 +1,392 @@
+/* ===========================================================
+   FLOWER SHOP - GLOBAL STYLE
+=========================================================== */
+
+/* =========================
+   GENERAL
+========================= */
+
+body{
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:#f8f9fa;
+    color:#333;
+}
+
+a{
+    text-decoration:none;
+}
+
+a:hover{
+    color:#198754;
+}
+
+/* =========================
+   NAVBAR
+========================= */
+
+.navbar{
+    background:#fff;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+    z-index:1000;
+}
+
+.navbar-brand{
+    font-size:1.6rem;
+    font-weight:bold;
+}
+
+.nav-link{
+    font-weight:500;
+    transition:.25s;
+}
+
+.nav-link:hover{
+    color:#198754 !important;
+}
+
+/* =========================
+   LOGIN PAGE
+========================= */
+
+.login-page{
+
+    min-height:calc(100vh - 72px);
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    padding:40px 15px;
+
+    background-image:
+        linear-gradient(rgba(255,255,255,.35),
+                        rgba(255,255,255,.35)),
+        url("../image/login_background.jpg");
+
+    background-size:cover;
+
+    background-position:center;
+
+    background-repeat:no-repeat;
+
+}
+
+.login-card{
+
+    width:100%;
+    max-width:470px;
+
+}
+
+.login-card .card{
+
+    border:none;
+
+    border-radius:20px;
+
+    background:rgba(255,255,255,.92);
+
+    backdrop-filter:blur(10px);
+
+    box-shadow:0 20px 45px rgba(0,0,0,.18);
+
+    transition:.3s;
+
+}
+
+.login-card .card:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:0 30px 60px rgba(0,0,0,.25);
+
+}
+
+.login-card .form-control{
+
+    height:48px;
+
+}
+
+.login-card .input-group-text{
+
+    background:#fff;
+
+}
+
+.login-card .btn-success{
+
+    border-radius:30px;
+
+    font-size:18px;
+
+    transition:.3s;
+
+}
+
+.login-card .btn-success:hover{
+
+    transform:translateY(-2px);
+
+}
+
+/* =========================
+   CARD
+========================= */
+
+.card{
+
+    border:none;
+
+    border-radius:15px;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+
+}
+
+/* =========================
+   BUTTON
+========================= */
+
+.btn{
+
+    transition:.25s;
+
+}
+
+.btn-success:hover{
+
+    transform:translateY(-2px);
+
+}
+
+/* =========================
+   FORM
+========================= */
+
+.form-control:focus{
+
+    border-color:#198754;
+
+    box-shadow:0 0 0 .2rem rgba(25,135,84,.15);
+
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.table{
+
+    background:#fff;
+
+}
+
+.table thead{
+
+    background:#198754;
+    color:white;
+
+}
+
+.table tbody tr:hover{
+
+    background:#f2fff7;
+
+}
+
+/* =========================
+   PAGINATION
+========================= */
+
+.pagination .page-link{
+
+    color:#198754;
+
+}
+
+.pagination .active .page-link{
+
+    background:#198754;
+    border-color:#198754;
+
+}
+
+.pagination .page-link:hover{
+
+    background:#198754;
+    color:#fff;
+
+}
+
+/* =========================
+   ADMIN SIDEBAR
+========================= */
+
+.sidebar{
+
+    min-height:100vh;
+
+    background:#fff;
+
+    border-right:1px solid #dee2e6;
+
+}
+
+.sidebar .nav-link{
+
+    color:#333;
+
+    padding:12px 18px;
+
+    margin:5px 10px;
+
+    border-radius:10px;
+
+    transition:.25s;
+
+}
+
+.sidebar .nav-link:hover{
+
+    background:#198754;
+
+    color:#fff;
+
+}
+
+.sidebar .nav-link.active{
+
+    background:#198754;
+
+    color:#fff;
+
+}
+
+.sidebar h5{
+
+    font-weight:bold;
+
+}
+
+/* =========================
+   ALERT
+========================= */
+
+.alert{
+
+    border-radius:12px;
+
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+footer{
+
+    background:#212529;
+
+    color:#fff;
+
+    margin-top:50px;
+
+}
+
+footer h5{
+
+    font-weight:bold;
+
+}
+
+footer p{
+
+    margin-bottom:10px;
+
+}
+
+footer hr{
+
+    border-color:#555;
+
+}
+
+/* =========================
+   PRODUCT CARD
+========================= */
+
+.product-card{
+
+    transition:.3s;
+
+    border-radius:15px;
+
+}
+
+.product-card:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+
+}
+
+.product-card img{
+
+    border-radius:15px 15px 0 0;
+
+    height:220px;
+
+    object-fit:cover;
+
+}
+
+/* =========================
+   BADGE
+========================= */
+
+.badge{
+
+    font-size:.85rem;
+
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:768px){
+
+    .login-page{
+
+        padding:20px;
+
+    }
+
+    .login-card{
+
+        max-width:100%;
+
+    }
+
+    .sidebar{
+
+        min-height:auto;
+
+    }
+
+    footer{
+
+        text-align:center;
+
+    }
+
+    footer .text-md-end{
+
+        text-align:center!important;
+
+    }
+
+}
