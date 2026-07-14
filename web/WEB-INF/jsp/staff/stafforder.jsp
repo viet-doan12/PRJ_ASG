@@ -389,7 +389,7 @@
                                                     <td>
                                                         <div class="d-flex align-items-center gap-2">
                                                             <c:if test="${not empty requestScope['flowerImage_'.concat(d.flowerID)]}">
-                                                                <img src="${pageContext.request.contextPath}/image/${requestScope['flowerImage_'.concat(d.flowerID)]}"
+                                                                <img src="${pageContext.request.contextPath}/images/flowers/${requestScope['flowerImage_'.concat(d.flowerID)]}"
                                                                      class="flower-thumb" alt="">
                                                             </c:if>
                                                             <span class="fw-semibold">${requestScope['flowerName_'.concat(d.flowerID)]}</span>

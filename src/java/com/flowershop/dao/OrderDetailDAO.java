@@ -21,7 +21,7 @@ public class OrderDetailDAO extends DBContext {
                     detail.setOrderID(rs.getInt("OrderID"));
                     detail.setFlowerID(rs.getInt("FlowerID"));
                     detail.setQuantity(rs.getInt("Quantity"));
-                    detail.setUnitPrice(rs.getBigDecimal("UnitPrice")); 
+                    detail.setUnitPrice(rs.getBigDecimal("UnitPrice"));
                     list.add(detail);
                 }
             }
@@ -38,7 +38,7 @@ public class OrderDetailDAO extends DBContext {
             ps.setInt(1, detail.getOrderID());
             ps.setInt(2, detail.getFlowerID());
             ps.setInt(3, detail.getQuantity());
-            ps.setBigDecimal(4, detail.getUnitPrice()); 
+            ps.setBigDecimal(4, detail.getUnitPrice());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -75,9 +75,9 @@ public class OrderDetailDAO extends DBContext {
     public List<Integer> getTopSellingFlowers(int limit) {
         List<Integer> list = new ArrayList<>();
         String sql = "SELECT TOP (?) FlowerID, SUM(Quantity) AS TotalSold "
-                   + "FROM OrderDetails "
-                   + "GROUP BY FlowerID "
-                   + "ORDER BY TotalSold DESC";
+                + "FROM OrderDetails "
+                + "GROUP BY FlowerID "
+                + "ORDER BY TotalSold DESC";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, limit);
             try (ResultSet rs = ps.executeQuery()) {
@@ -89,5 +89,25 @@ public class OrderDetailDAO extends DBContext {
             e.printStackTrace();
         }
         return list;
+    }
+
+    public int findCompletedOrderIdForReview(int userId, int flowerId) {
+        String sql = "SELECT TOP 1 od.OrderID "
+                + "FROM OrderDetails od "
+                + "JOIN Orders o ON od.OrderID = o.OrderID "
+                + "WHERE o.UserID = ? AND od.FlowerID = ? AND o.Status = 'Completed' "
+                + "ORDER BY o.OrderDate DESC";
+        try (java.sql.PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, flowerId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("OrderID");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 }

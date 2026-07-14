@@ -41,6 +41,19 @@
         footer {
             flex-shrink: 0;
         }
+
+        .navbar-search {
+            max-width: 360px;
+            width: 100%;
+        }
+
+        .navbar-search input[type="search"] {
+            border-radius: 20px 0 0 20px;
+        }
+
+        .navbar-search button {
+            border-radius: 0 20px 20px 0;
+        }
     </style>
 </head>
 
@@ -94,11 +107,25 @@
 
             </ul>
 
+            <!-- THANH TÌM KIẾM -->
+            <form class="d-flex navbar-search mx-auto my-2 my-lg-0"
+                  action="${pageContext.request.contextPath}/flowers"
+                  method="get"
+                  role="search">
+                <input type="search"
+                       name="keyword"
+                       class="form-control"
+                       placeholder="Tìm kiếm hoa..."
+                       aria-label="Tìm kiếm hoa"
+                       value="${param.keyword}">
+                <button class="btn btn-success" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+
             <ul class="navbar-nav">
 
                 <c:choose>
-
-               
 
                     <c:when test="${not empty sessionScope.user}">
 
@@ -166,8 +193,6 @@
                         </li>
 
                     </c:when>
-
-            
 
                     <c:otherwise>
 

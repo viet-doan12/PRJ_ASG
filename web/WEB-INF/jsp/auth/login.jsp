@@ -22,8 +22,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Mật khẩu</label>
-                        <input type="password" class="form-control" name="password"
-                               placeholder="Nhập mật khẩu" required>
+                        <div class="input-group">
+                            <input type="password" class="form-control" name="password"
+                                   id="passwordInput"
+                                   placeholder="Nhập mật khẩu" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                    id="togglePasswordBtn"
+                                    aria-label="Hiện/ẩn mật khẩu"
+                                    tabindex="-1">
+                                <i class="bi bi-eye-slash" id="togglePasswordIcon"></i>
+                            </button>
+                        </div>
                     </div>
                     <button class="btn btn-success w-100" type="submit">Đăng nhập</button>
                 </form>
@@ -36,4 +45,22 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('togglePasswordBtn').addEventListener('click', function () {
+    const input = document.getElementById('passwordInput');
+    const icon = document.getElementById('togglePasswordIcon');
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    }
+});
+</script>
+
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp"/>

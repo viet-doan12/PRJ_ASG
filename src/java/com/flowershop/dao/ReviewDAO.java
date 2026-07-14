@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAO cho module Review (Phạm Đức Minh).
- * Map đúng field model Review hiện có (không thêm thuộc tính model).
+ * DAO cho module Review (Phạm Đức Minh). Map đúng field model Review hiện có
+ * (không thêm thuộc tính model).
  */
 public class ReviewDAO extends DBContext {
 
@@ -146,6 +146,24 @@ public class ReviewDAO extends DBContext {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    /**
+     * Kiểm tra khách đã đánh giá sản phẩm này cho đúng đơn hàng đó chưa.
+     */
+    public boolean hasReviewed(int orderId, int flowerId, int userId) {
+        String sql = "SELECT 1 FROM Reviews WHERE OrderID = ? AND FlowerID = ? AND UserID = ?";
+        try (java.sql.PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, orderId);
+            ps.setInt(2, flowerId);
+            ps.setInt(3, userId);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private Review mapRow(ResultSet rs) throws SQLException {

@@ -456,10 +456,37 @@
                     </table>
                 </div>
 
-                <div class="card-footer bg-white border-top py-3">
-                    <span class="text-muted small">
-                        Total: <strong>${flowerList.size()}</strong> flower(s)
-                    </span>
+<div class="card-footer bg-white border-top py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="text-muted small">
+                            Total: <strong>${totalRecords}</strong> flower(s)
+                            — Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong>
+                        </span>
+
+                        <c:if test="${totalPages > 1}">
+                            <nav aria-label="Flower list pagination">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+                                        <a class="page-link" href="${baseUrl}&page=${currentPage - 1}">
+                                            <i class="fa-solid fa-angle-left"></i>
+                                        </a>
+                                    </li>
+
+                                    <c:forEach begin="1" end="${totalPages}" var="i">
+                                        <li class="page-item ${i == currentPage ? 'active' : ''}">
+                                            <a class="page-link" href="${baseUrl}&page=${i}">${i}</a>
+                                        </li>
+                                    </c:forEach>
+
+                                    <li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+                                        <a class="page-link" href="${baseUrl}&page=${currentPage + 1}">
+                                            <i class="fa-solid fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </c:if>
+                    </div>
                 </div>
             </div>
         </div>

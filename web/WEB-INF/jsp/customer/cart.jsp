@@ -56,8 +56,8 @@
                                         <tr>
                                             <td class="ps-3">
                                                 <div class="d-flex align-items-center">
-                                                    <img src="${pageContext.request.contextPath}/images/${flower.image}"
-                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/image/05b4fbc3f169175e6deb97b3977175b6.jpg';"
+                                                    <img src="${pageContext.request.contextPath}/images/flowers/${flower.image}"
+                                                         onerror="this.onerror=null;this.src='${pageContext.request.contextPath}/images/flowers/no-image.png';"
                                                          alt="${flower.flowerName}"
                                                          class="rounded me-3 border"
                                                          style="width:64px;height:64px;object-fit:cover;">
@@ -82,18 +82,32 @@
                                                     <input type="hidden" name="flowerID" value="${flower.flowerID}">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary px-2"
                                                             title="Giảm số lượng"
-                                                            onclick="var i=this.nextElementSibling; var v=parseInt(i.value)-1; if(v>=1){i.value=v; this.form.submit();}">
+                                                            onclick="var i = this.nextElementSibling; var v = parseInt(i.value) - 1; if (v >= 1) {
+                                                                        i.value = v;
+                                                                        this.form.submit();
+                                                                    }">
                                                         <i class="bi bi-dash"></i>
                                                     </button>
                                                     <input type="number" name="quantity" value="${item.quantity}"
                                                            min="1" max="${flower.stockQuantity}"
                                                            class="form-control form-control-sm text-center px-1"
                                                            style="width:52px;"
-                                                           onchange="var v=parseInt(this.value); var max=${flower.stockQuantity}; if(isNaN(v)||v<1)v=1; if(v>max)v=max; this.value=v; this.form.submit();">
+                                                           onchange="var v = parseInt(this.value); var max =${flower.stockQuantity}; if (isNaN(v) || v < 1)
+                                                                       v = 1;
+                                                                   if (v > max)
+                                                                       v = max;
+                                                                   this.value = v;
+                                                                   this.form.submit();">
                                                     <button type="button" class="btn btn-sm btn-outline-secondary px-2"
                                                             title="Tăng số lượng"
                                                             ${item.quantity >= flower.stockQuantity ? 'disabled' : ''}
-                                                            onclick="var i=this.previousElementSibling; var v=parseInt(i.value)+1; var max=${flower.stockQuantity}; if(v<=max){i.value=v; this.form.submit();}">
+                                                            onclick="var i = this.previousElementSibling;
+                                                                    var v = parseInt(i.value) + 1;
+                                                                    var max =${flower.stockQuantity};
+                                                                    if (v <= max) {
+                                                                        i.value = v;
+                                                                        this.form.submit();
+                                                                    }">
                                                         <i class="bi bi-plus"></i>
                                                     </button>
                                                 </form>

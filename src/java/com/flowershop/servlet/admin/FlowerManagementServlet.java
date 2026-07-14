@@ -7,10 +7,12 @@ import com.flowershop.model.Flower;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -32,9 +34,7 @@ public class FlowerManagementServlet extends HttpServlet {
 
     private static final String LIST_VIEW = "/WEB-INF/jsp/admin/flowers.jsp";
     private static final String FORM_VIEW = "/WEB-INF/jsp/admin/flower-form.jsp";
-
-    // Không còn field cấp lớp / init() - DAO được tạo mới và đóng lại
-    // ngay trong từng request, tránh giữ 2 connection sống suốt vòng đời servlet.
+    private static final int PAGE_SIZE = 10;
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -105,7 +105,43 @@ public class FlowerManagementServlet extends HttpServlet {
             flowers = flowerDAO.getAllFlowers();
         }
 
-        request.setAttribute("flowerList", flowers);
+        // ===== PHÂN TRANG (trong bộ nhớ) =====
+        int totalRecords = flowers.size();
+        int totalPages = (int) Math.ceil((double) totalRecords / PAGE_SIZE);
+        if (totalPages == 0) {
+            totalPages = 1;
+        }
+
+        int page = parsePositiveInt(request.getParameter("page"), 1);
+        if (page > totalPages) {
+            page = totalPages;
+        }
+        if (page < 1) {
+            page = 1;
+        }
+
+        int fromIndex = (page - 1) * PAGE_SIZE;
+        int toIndex = Math.min(fromIndex + PAGE_SIZE, totalRecords);
+        List<Flower> pageFlowers = (fromIndex < totalRecords)
+                ? flowers.subList(fromIndex, toIndex)
+                : new ArrayList<>();
+
+        // Base URL để nút phân trang giữ nguyên keyword/categoryID đang lọc
+        StringBuilder baseUrl = new StringBuilder(request.getContextPath())
+                .append("/admin/flowers?action=list");
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            baseUrl.append("&keyword=").append(URLEncoder.encode(keyword.trim(), "UTF-8"));
+        }
+        if (categoryParam != null && !categoryParam.trim().isEmpty()) {
+            baseUrl.append("&categoryID=").append(URLEncoder.encode(categoryParam.trim(), "UTF-8"));
+        }
+
+        request.setAttribute("flowerList", pageFlowers);
+        request.setAttribute("totalRecords", totalRecords);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("baseUrl", baseUrl.toString());
+
         loadCategories(request, categoryDAO);
         request.getRequestDispatcher(LIST_VIEW).forward(request, response);
     }
@@ -252,6 +288,18 @@ public class FlowerManagementServlet extends HttpServlet {
     private void loadCategories(HttpServletRequest request, CategoryDAO categoryDAO) {
         List<Category> categories = categoryDAO.getActiveCategories();
         request.setAttribute("categoryList", categories);
+    }
+
+    private int parsePositiveInt(String raw, int defaultValue) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value > 0 ? value : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     @Override

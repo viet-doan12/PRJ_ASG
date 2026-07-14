@@ -125,6 +125,53 @@
             </div>
         </c:if>
 
+        <!-- FORM VIẾT ĐÁNH GIÁ (chỉ hiện nếu khách đã mua và nhận hàng thành công) -->
+        <c:choose>
+            <c:when test="${canReview}">
+                <div class="mt-4 p-4 bg-light rounded-4 shadow-sm">
+                    <h5 class="fw-bold text-success mb-3">
+                        <i class="bi bi-pencil-square me-2"></i>Viết đánh giá của bạn
+                    </h5>
+                    <form method="post" action="${pageContext.request.contextPath}/review">
+                        <input type="hidden" name="flowerID" value="${flower.flowerID}">
+                        <input type="hidden" name="orderID" value="${reviewOrderId}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Số sao đánh giá</label>
+                            <div class="d-flex gap-3">
+                                <c:forEach begin="1" end="5" var="i">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio"
+                                               name="rating" id="star${i}" value="${i}"
+                                               ${i == 5 ? 'checked' : ''} required>
+                                        <label class="form-check-label" for="star${i}">${i} <i class="bi bi-star-fill text-warning"></i></label>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nhận xét</label>
+                            <textarea name="comment" class="form-control" rows="3"
+                                      placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..." maxlength="1000"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success rounded-pill px-4">
+                            <i class="bi bi-send-fill me-1"></i>Gửi đánh giá
+                        </button>
+                    </form>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <c:if test="${not empty sessionScope.user}">
+                    <div class="mt-4 p-3 bg-light rounded-4 text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Bạn cần mua và nhận thành công sản phẩm này để có thể viết đánh giá.
+                    </div>
+                </c:if>
+            </c:otherwise>
+        </c:choose>
+
         <c:if test="${not empty relatedFlowers}">
             <div class="mt-5 border-top pt-4">
                 <h4 class="fw-bold text-success mb-4">Sản Phẩm Tương Tự</h4>
