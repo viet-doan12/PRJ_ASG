@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports &amp; Statistics - Admin FlowerShop</title>
+    <title>Reports - Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,7 +22,6 @@
             --text-muted: #6b7280;
             --border-color: #e5e7eb;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         body {
@@ -36,15 +35,12 @@
             background-color: var(--sidebar-bg);
             min-height: 100vh;
             color: #ffffff;
-            transition: all 0.3s;
-            z-index: 100;
         }
 
         .sidebar .brand {
             padding: 1.5rem 1rem;
             font-size: 1.25rem;
             font-weight: 700;
-            letter-spacing: 0.05em;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             color: #38bdf8;
         }
@@ -61,7 +57,6 @@
             padding: 0.75rem 1.5rem;
             color: #cbd5e1;
             text-decoration: none;
-            transition: all 0.2s;
             border-left: 4px solid transparent;
         }
 
@@ -74,7 +69,6 @@
 
         .sidebar-menu li a i {
             margin-right: 0.75rem;
-            font-size: 1.1rem;
             width: 20px;
             text-align: center;
         }
@@ -84,28 +78,10 @@
             min-height: 100vh;
         }
 
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
         .page-title {
             font-size: 1.75rem;
             font-weight: 700;
-            color: var(--text-main);
             margin: 0;
-        }
-
-        .user-nav-profile {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
         }
 
         .card {
@@ -113,23 +89,36 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             box-shadow: var(--shadow-sm);
-            overflow: hidden;
             margin-bottom: 1.5rem;
         }
 
-        .card-header-custom {
+        .stat-card {
             padding: 1.25rem 1.5rem;
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
         }
 
-        .table {
-            margin-bottom: 0;
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .report-tabs a {
+            padding: 0.6rem 1.1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .report-tabs a.active {
+            background-color: var(--primary-color);
+            color: #fff;
         }
 
         .table th {
@@ -138,125 +127,24 @@
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.75rem;
-            letter-spacing: 0.05em;
             padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
         }
 
         .table td {
             padding: 1rem 1.5rem;
             vertical-align: middle;
             font-size: 0.875rem;
-            border-bottom: 1px solid var(--border-color);
         }
 
-        .table tbody tr:hover {
-            background-color: #f8fafc;
-        }
-
-        .report-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+        .filter-panel {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
             margin-bottom: 1.5rem;
         }
 
-        .report-tabs a {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.55rem 1rem;
-            border-radius: 9999px;
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            transition: all 0.2s;
-        }
-
-        .report-tabs a:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .report-tabs a.active {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-            color: #ffffff;
-        }
-
-        .metric-mini {
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            background: #ffffff;
-            box-shadow: var(--shadow-sm);
-            padding: 1rem 1.25rem;
-            height: 100%;
-        }
-
-        .metric-mini .label {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: 0.25rem;
-        }
-
-        .metric-mini .value {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .rank-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-
-        .rank-badge.top1 { background: #fef3c7; color: #b45309; }
-        .rank-badge.top2 { background: #e5e7eb; color: #374151; }
-        .rank-badge.top3 { background: #ffedd5; color: #c2410c; }
-
-        .status-badge {
-            font-weight: 500;
-            padding: 0.35em 0.75em;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            display: inline-block;
-        }
-
-        .status-completed { background: #dcfce7; color: #15803d; }
-        .status-pending { background: #fef3c7; color: #b45309; }
-        .status-processing { background: #dbeafe; color: #1d4ed8; }
-        .status-shipping { background: #e0e7ff; color: #3730a3; }
-        .status-cancelled { background: #fee2e2; color: #b91c1c; }
-        .status-default { background: #f3f4f6; color: #4b5563; }
-
-        .level-out { background: #fee2e2; color: #b91c1c; }
-        .level-low { background: #fef3c7; color: #b45309; }
-        .level-ok { background: #dcfce7; color: #15803d; }
-
-        .badge-active {
-            background-color: #dcfce7;
-            color: #15803d;
-            font-weight: 500;
-            padding: 0.35em 0.65em;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-        }
-
-        .badge-inactive {
+        .badge-stock-out {
             background-color: #fee2e2;
             color: #b91c1c;
             font-weight: 500;
@@ -265,45 +153,13 @@
             font-size: 0.75rem;
         }
 
-        .filter-form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            align-items: center;
-        }
-
-        .filter-form .form-control,
-        .filter-form .form-select {
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            min-width: 120px;
-        }
-
-        .filter-form .form-control:focus,
-        .filter-form .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-primary-custom {
-            background-color: var(--primary-color);
-            color: #ffffff;
-            border: none;
+        .badge-stock-low {
+            background-color: #fef3c7;
+            color: #b45309;
             font-weight: 500;
-            border-radius: 8px;
-            padding: 0.45rem 1.1rem;
-            transition: all 0.2s;
-        }
-
-        .btn-primary-custom:hover {
-            background-color: var(--primary-hover);
-            color: #ffffff;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-            color: var(--text-muted);
+            padding: 0.35em 0.65em;
+            border-radius: 9999px;
+            font-size: 0.75rem;
         }
     </style>
 </head>
@@ -329,424 +185,292 @@
 
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 main-content">
-            <div class="header-container">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <div>
                     <h1 class="page-title">Reports &amp; Statistics</h1>
-                    <p class="text-muted mb-0">Báo cáo doanh thu, tồn kho và khách hàng</p>
-                </div>
-                <div class="user-nav-profile">
-                    <i class="fa-solid fa-circle-user text-primary fs-4"></i>
-                    <div>
-                        <span class="d-block fw-semibold" style="font-size: 0.85rem;">Administrator</span>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">admin@flowershop.com</span>
-                    </div>
+                    <p class="text-muted mb-0">Thống kê tổng quan hệ thống bán hoa</p>
                 </div>
             </div>
 
             <c:if test="${not empty error}">
-                <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                    ${error}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <div class="alert alert-danger border-0 shadow-sm">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>${error}
                 </div>
             </c:if>
 
-            <!-- Summary metrics -->
-            <div class="row g-3 mb-3">
-                <div class="col-sm-6 col-lg-4">
-                    <div class="metric-mini">
-                        <div class="label">Total Revenue (Completed)</div>
-                        <div class="value">${totalRevenueDisplay} <span style="font-size: 0.85rem; font-weight: 500;">₫</span></div>
+            <!-- Quick stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card stat-card">
+                        <div class="stat-label">Tổng doanh thu (toàn hệ thống)</div>
+                        <div class="stat-value">${totalRevenueDisplay} đ</div>
                     </div>
                 </div>
                 <c:if test="${reportType == 'revenue'}">
-                    <div class="col-sm-6 col-lg-4">
-                        <div class="metric-mini">
-                            <div class="label">Revenue Year ${year}</div>
-                            <div class="value">${yearRevenueDisplay} <span style="font-size: 0.85rem; font-weight: 500;">₫</span></div>
+                    <div class="col-md-4">
+                        <div class="card stat-card">
+                            <div class="stat-label">Doanh thu năm ${year}</div>
+                            <div class="stat-value">${yearRevenueDisplay} đ</div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-lg-4">
-                        <div class="metric-mini">
-                            <div class="label">Completed Orders ${year}</div>
-                            <div class="value">${yearOrderCount}</div>
+                    <div class="col-md-4">
+                        <div class="card stat-card">
+                            <div class="stat-label">Số đơn hàng năm ${year}</div>
+                            <div class="stat-value">${yearOrderCount}</div>
                         </div>
                     </div>
                 </c:if>
             </div>
 
             <!-- Report type tabs -->
-            <div class="report-tabs">
-                <a href="${pageContext.request.contextPath}/admin/reports?type=revenue"
-                   class="${reportType == 'revenue' ? 'active' : ''}">
-                    <i class="fa-solid fa-chart-column"></i> Revenue
+            <div class="d-flex gap-2 flex-wrap report-tabs mb-4">
+                <a href="${pageContext.request.contextPath}/admin/reports?type=revenue" class="${reportType == 'revenue' ? 'active' : ''}">
+                    <i class="fa-solid fa-sack-dollar me-1"></i> Doanh thu theo tháng
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/reports?type=topselling&limit=${limit}"
-                   class="${reportType == 'topselling' ? 'active' : ''}">
-                    <i class="fa-solid fa-trophy"></i> Top Selling
+                <a href="${pageContext.request.contextPath}/admin/reports?type=topselling" class="${reportType == 'topselling' ? 'active' : ''}">
+                    <i class="fa-solid fa-fire me-1"></i> Sản phẩm bán chạy
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/reports?type=inventory&threshold=${threshold}"
-                   class="${reportType == 'inventory' ? 'active' : ''}">
-                    <i class="fa-solid fa-boxes-stacked"></i> Inventory
+                <a href="${pageContext.request.contextPath}/admin/reports?type=inventory" class="${reportType == 'inventory' ? 'active' : ''}">
+                    <i class="fa-solid fa-boxes-stacked me-1"></i> Tồn kho
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/reports?type=customer&limit=${limit}"
-                   class="${reportType == 'customer' ? 'active' : ''}">
-                    <i class="fa-solid fa-star"></i> Top Customers
+                <a href="${pageContext.request.contextPath}/admin/reports?type=customer" class="${reportType == 'customer' ? 'active' : ''}">
+                    <i class="fa-solid fa-crown me-1"></i> Khách hàng VIP
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/reports?type=orderstatus"
-                   class="${reportType == 'orderstatus' ? 'active' : ''}">
-                    <i class="fa-solid fa-chart-pie"></i> Order Status
+                <a href="${pageContext.request.contextPath}/admin/reports?type=orderstatus" class="${reportType == 'orderstatus' ? 'active' : ''}">
+                    <i class="fa-solid fa-list-check me-1"></i> Đơn hàng theo trạng thái
                 </a>
             </div>
 
-            <!-- ===================== REVENUE ===================== -->
+            <!-- Bộ lọc + xuất báo cáo (chỉ áp dụng cho doanh thu) -->
             <c:if test="${reportType == 'revenue'}">
-                <div class="card">
-                    <div class="card-header-custom">
-                        <h5 class="mb-0 fw-semibold">
-                            <i class="fa-solid fa-chart-column text-primary me-2"></i>
-                            Revenue by Month — ${year}
-                        </h5>
-                        <form class="filter-form" method="get" action="${pageContext.request.contextPath}/admin/reports">
-                            <input type="hidden" name="type" value="revenue"/>
-                            <label class="small text-muted mb-0">Year</label>
-                            <input type="number" name="year" class="form-control form-control-sm"
-                                   value="${year}" min="2000" max="${currentYear + 1}" style="width: 110px;"/>
-                            <button type="submit" class="btn btn-primary-custom btn-sm">
-                                <i class="fa-solid fa-filter me-1"></i> Apply
+                <div class="filter-panel">
+                    <form method="get" action="${pageContext.request.contextPath}/admin/reports" class="row g-2 align-items-end">
+                        <input type="hidden" name="type" value="revenue">
+
+                        <div class="col-auto">
+                            <label class="form-label mb-0 fw-semibold small">Năm xem trên web</label>
+                            <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <c:forEach var="y" begin="${currentYear - 4}" end="${currentYear}">
+                                    <option value="${y}" ${y == year ? 'selected' : ''}>${y}</option>
+                                </c:forEach>
+                            </select>
+                        </div>
+
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Xem</button>
+                        </div>
+
+                        <div class="col-auto ms-auto">
+                            <label class="form-label mb-0 fw-semibold small">Khoảng thời gian xuất báo cáo</label>
+                            <select name="range" id="rangeSelect" class="form-select form-select-sm" onchange="toggleCustomRange()">
+                                <option value="day">Hôm nay</option>
+                                <option value="week">Tuần này</option>
+                                <option value="month" selected>Tháng này</option>
+                                <option value="custom">Tùy chọn</option>
+                            </select>
+                        </div>
+
+                        <div class="col-auto" id="customRangeFrom" style="display:none;">
+                            <label class="form-label mb-0 small">Từ ngày</label>
+                            <input type="date" name="startDate" id="startDateInput" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-auto" id="customRangeTo" style="display:none;">
+                            <label class="form-label mb-0 small">Đến ngày</label>
+                            <input type="date" name="endDate" id="endDateInput" class="form-control form-control-sm">
+                        </div>
+
+                        <div class="col-auto d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-success" onclick="doExport('csv')">
+                                <i class="fa-solid fa-file-csv me-1"></i> Xuất Excel (CSV)
                             </button>
-                        </form>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Month</th>
-                                    <th class="text-end">Order Count</th>
-                                    <th class="text-end">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${not empty reportData}">
-                                        <c:forEach var="row" items="${reportData}">
-                                            <tr>
-                                                <td class="fw-semibold">
-                                                    Tháng ${row.month}/${row.year}
-                                                </td>
-                                                <td class="text-end">${row.orderCount}</td>
-                                                <td class="text-end">${row.revenueDisplay} ₫</td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <tr>
-                                            <td colspan="3">
-                                                <div class="empty-state">
-                                                    <i class="fa-regular fa-folder-open fs-1 d-block mb-3"></i>
-                                                    <span>Chưa có doanh thu hoàn tất trong năm ${year}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </c:if>
-
-            <!-- ===================== TOP SELLING ===================== -->
-            <c:if test="${reportType == 'topselling'}">
-                <div class="card">
-                    <div class="card-header-custom">
-                        <h5 class="mb-0 fw-semibold">
-                            <i class="fa-solid fa-trophy text-warning me-2"></i>
-                            Top Selling Flowers
-                        </h5>
-                        <form class="filter-form" method="get" action="${pageContext.request.contextPath}/admin/reports">
-                            <input type="hidden" name="type" value="topselling"/>
-                            <label class="small text-muted mb-0">Top N</label>
-                            <input type="number" name="limit" class="form-control form-control-sm"
-                                   value="${limit}" min="1" max="100" style="width: 90px;"/>
-                            <button type="submit" class="btn btn-primary-custom btn-sm">
-                                <i class="fa-solid fa-filter me-1"></i> Apply
+                            <button type="button" class="btn btn-sm btn-danger" onclick="doExport('print')">
+                                <i class="fa-solid fa-file-pdf me-1"></i> In / Xuất PDF
                             </button>
-                        </form>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 70px;">Rank</th>
-                                    <th>Flower</th>
-                                    <th class="text-end">Qty Sold</th>
-                                    <th class="text-end">Revenue</th>
-                                    <th class="text-end">Stock</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${not empty reportData}">
-                                        <c:forEach var="row" items="${reportData}" varStatus="st">
-                                            <tr>
-                                                <td>
-                                                    <span class="rank-badge ${st.index == 0 ? 'top1' : (st.index == 1 ? 'top2' : (st.index == 2 ? 'top3' : ''))}">
-                                                        ${st.index + 1}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span class="fw-semibold text-dark">${row.flowerName}</span>
-                                                    <span class="text-muted small d-block">ID #${row.flowerId}</span>
-                                                </td>
-                                                <td class="text-end fw-medium">${row.totalSold}</td>
-                                                <td class="text-end">${row.revenueDisplay} ₫</td>
-                                                <td class="text-end">
-                                                    <c:choose>
-                                                        <c:when test="${row.stockQuantity <= 0}">
-                                                            <span class="status-badge status-cancelled">Hết hàng</span>
-                                                        </c:when>
-                                                        <c:when test="${row.stockQuantity <= 10}">
-                                                            <span class="status-badge status-pending">${row.stockQuantity}</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="text-muted">${row.stockQuantity}</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <tr>
-                                            <td colspan="5">
-                                                <div class="empty-state">
-                                                    <i class="fa-regular fa-folder-open fs-1 d-block mb-3"></i>
-                                                    <span>Chưa có dữ liệu bán hàng</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </c:if>
 
-            <!-- ===================== INVENTORY ===================== -->
-            <c:if test="${reportType == 'inventory'}">
-                <div class="card">
-                    <div class="card-header-custom">
-                        <h5 class="mb-0 fw-semibold">
-                            <i class="fa-solid fa-boxes-stacked text-success me-2"></i>
-                            Inventory Report
-                        </h5>
-                        <form class="filter-form" method="get" action="${pageContext.request.contextPath}/admin/reports">
-                            <input type="hidden" name="type" value="inventory"/>
-                            <label class="small text-muted mb-0">Low stock ≤</label>
-                            <input type="number" name="threshold" class="form-control form-control-sm"
-                                   value="${threshold}" min="1" max="1000" style="width: 90px;"/>
-                            <button type="submit" class="btn btn-primary-custom btn-sm">
-                                <i class="fa-solid fa-filter me-1"></i> Apply
-                            </button>
-                        </form>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Flower</th>
-                                    <th class="text-end">Stock</th>
-                                    <th>Level</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${not empty reportData}">
-                                        <c:forEach var="row" items="${reportData}">
-                                            <tr>
-                                                <td>
-                                                    <span class="fw-semibold text-dark">${row.flowerName}</span>
-                                                    <span class="text-muted small d-block">ID #${row.flowerId}</span>
-                                                </td>
-                                                <td class="text-end fw-medium">${row.stockQuantity}</td>
-                                                <td>
-                                                    <c:choose>
-                                                        <c:when test="${row.stockLevel == 'OUT'}">
-                                                            <span class="status-badge level-out">OUT</span>
-                                                        </c:when>
-                                                        <c:when test="${row.stockLevel == 'LOW'}">
-                                                            <span class="status-badge level-low">LOW</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="status-badge level-ok">OK</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                                <td>
-                                                    <c:choose>
-                                                        <c:when test="${row.status}">
-                                                            <span class="badge-active">Active</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="badge-inactive">Inactive</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <tr>
-                                            <td colspan="4">
-                                                <div class="empty-state">
-                                                    <i class="fa-regular fa-folder-open fs-1 d-block mb-3"></i>
-                                                    <span>Chưa có dữ liệu tồn kho</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </c:if>
+            <!-- Report data table -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
 
-            <!-- ===================== TOP CUSTOMERS ===================== -->
-            <c:if test="${reportType == 'customer'}">
-                <div class="card">
-                    <div class="card-header-custom">
-                        <h5 class="mb-0 fw-semibold">
-                            <i class="fa-solid fa-star text-warning me-2"></i>
-                            Top Customers (VIP)
-                        </h5>
-                        <form class="filter-form" method="get" action="${pageContext.request.contextPath}/admin/reports">
-                            <input type="hidden" name="type" value="customer"/>
-                            <label class="small text-muted mb-0">Top N</label>
-                            <input type="number" name="limit" class="form-control form-control-sm"
-                                   value="${limit}" min="1" max="100" style="width: 90px;"/>
-                            <button type="submit" class="btn btn-primary-custom btn-sm">
-                                <i class="fa-solid fa-filter me-1"></i> Apply
-                            </button>
-                        </form>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 70px;">#</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th class="text-end">Orders</th>
-                                    <th class="text-end">Total Spent</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${not empty reportData}">
-                                        <c:forEach var="row" items="${reportData}" varStatus="st">
-                                            <tr>
-                                                <td>
-                                                    <span class="rank-badge ${st.index == 0 ? 'top1' : (st.index == 1 ? 'top2' : (st.index == 2 ? 'top3' : ''))}">
-                                                        ${st.index + 1}
-                                                    </span>
-                                                </td>
-                                                <td class="fw-semibold">${row.fullName}</td>
-                                                <td class="text-muted">${row.email}</td>
-                                                <td class="text-end">${row.totalOrders}</td>
-                                                <td class="text-end">${row.totalSpentDisplay} ₫</td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <tr>
-                                            <td colspan="5">
-                                                <div class="empty-state">
-                                                    <i class="fa-regular fa-folder-open fs-1 d-block mb-3"></i>
-                                                    <span>Chưa có dữ liệu khách hàng VIP</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </c:if>
+                        <c:choose>
+                            <%-- ===== BÁO CÁO DOANH THU THEO THÁNG ===== --%>
+                            <c:when test="${reportType == 'revenue'}">
+                                <thead>
+                                    <tr>
+                                        <th>Tháng</th>
+                                        <th class="text-end">Số đơn hàng</th>
+                                        <th class="text-end">Doanh thu (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:choose>
+                                        <c:when test="${empty reportData}">
+                                            <tr><td colspan="3" class="text-center py-5 text-muted">Chưa có dữ liệu doanh thu cho năm ${year}.</td></tr>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach var="row" items="${reportData}">
+                                                <tr>
+                                                    <td>Tháng ${row.month}</td>
+                                                    <td class="text-end">${row.orderCount}</td>
+                                                    <td class="text-end fw-semibold">${row.revenueDisplay}</td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </c:when>
 
-            <!-- ===================== ORDER STATUS ===================== -->
-            <c:if test="${reportType == 'orderstatus'}">
-                <div class="card">
-                    <div class="card-header-custom">
-                        <h5 class="mb-0 fw-semibold">
-                            <i class="fa-solid fa-chart-pie text-primary me-2"></i>
-                            Orders by Status
-                        </h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Status</th>
-                                    <th class="text-end">Order Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:choose>
-                                    <c:when test="${not empty reportData}">
-                                        <c:forEach var="row" items="${reportData}">
-                                            <tr>
-                                                <td>
-                                                    <c:set var="stName" value="${row.status}"/>
-                                                    <c:choose>
-                                                        <c:when test="${stName == 'Completed'}">
-                                                            <span class="status-badge status-completed">${stName}</span>
-                                                        </c:when>
-                                                        <c:when test="${stName == 'Pending'}">
-                                                            <span class="status-badge status-pending">${stName}</span>
-                                                        </c:when>
-                                                        <c:when test="${stName == 'Processing'}">
-                                                            <span class="status-badge status-processing">${stName}</span>
-                                                        </c:when>
-                                                        <c:when test="${stName == 'Shipping'}">
-                                                            <span class="status-badge status-shipping">${stName}</span>
-                                                        </c:when>
-                                                        <c:when test="${stName == 'Cancelled'}">
-                                                            <span class="status-badge status-cancelled">${stName}</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="status-badge status-default">${stName}</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </td>
-                                                <td class="text-end fw-semibold">${row.orderCount}</td>
-                                            </tr>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <tr>
-                                            <td colspan="2">
-                                                <div class="empty-state">
-                                                    <i class="fa-regular fa-folder-open fs-1 d-block mb-3"></i>
-                                                    <span>Chưa có đơn hàng</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </c:otherwise>
-                                </c:choose>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </c:if>
+                            <%-- ===== SẢN PHẨM BÁN CHẠY ===== --%>
+                            <c:when test="${reportType == 'topselling'}">
+                                <thead>
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th class="text-end">Số lượng đã bán</th>
+                                        <th class="text-end">Doanh thu (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:choose>
+                                        <c:when test="${empty reportData}">
+                                            <tr><td colspan="3" class="text-center py-5 text-muted">Chưa có dữ liệu bán hàng.</td></tr>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach var="row" items="${reportData}">
+                                                <tr>
+                                                    <td class="fw-semibold">${row.flowerName}</td>
+                                                    <td class="text-end">${row.totalSold}</td>
+                                                    <td class="text-end fw-semibold">${row.revenueDisplay}</td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </c:when>
 
+                            <%-- ===== TỒN KHO ===== --%>
+                            <c:when test="${reportType == 'inventory'}">
+                                <thead>
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th class="text-end">Tồn kho</th>
+                                        <th style="width:140px;">Cảnh báo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:choose>
+                                        <c:when test="${empty reportData}">
+                                            <tr><td colspan="3" class="text-center py-5 text-muted">Không có sản phẩm nào dưới ngưỡng tồn kho.</td></tr>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach var="row" items="${reportData}">
+                                                <tr>
+                                                    <td class="fw-semibold">${row.flowerName}</td>
+                                                    <td class="text-end">${row.stockQuantity}</td>
+                                                    <td>
+                                                        <c:choose>
+                                                            <c:when test="${row.stockQuantity <= 0}">
+                                                                <span class="badge-stock-out">Hết hàng</span>
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                <span class="badge-stock-low">Sắp hết</span>
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                    </td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </c:when>
+
+                            <%-- ===== KHÁCH HÀNG VIP ===== --%>
+                            <c:when test="${reportType == 'customer'}">
+                                <thead>
+                                    <tr>
+                                        <th>Khách hàng</th>
+                                        <th class="text-end">Số đơn hàng</th>
+                                        <th class="text-end">Tổng chi tiêu (VNĐ)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:choose>
+                                        <c:when test="${empty reportData}">
+                                            <tr><td colspan="3" class="text-center py-5 text-muted">Chưa có dữ liệu khách hàng.</td></tr>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach var="row" items="${reportData}">
+                                                <tr>
+                                                    <td class="fw-semibold">${row.fullName}</td>
+                                                    <td class="text-end">${row.orderCount}</td>
+                                                    <td class="text-end fw-semibold">${row.totalSpentDisplay}</td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </c:when>
+
+                            <%-- ===== ĐƠN HÀNG THEO TRẠNG THÁI ===== --%>
+                            <c:when test="${reportType == 'orderstatus'}">
+                                <thead>
+                                    <tr>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Số lượng đơn</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:choose>
+                                        <c:when test="${empty reportData}">
+                                            <tr><td colspan="2" class="text-center py-5 text-muted">Chưa có đơn hàng nào.</td></tr>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <c:forEach var="row" items="${reportData}">
+                                                <tr>
+                                                    <td class="fw-semibold">${row.status}</td>
+                                                    <td class="text-end">${row.orderCount}</td>
+                                                </tr>
+                                            </c:forEach>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </tbody>
+                            </c:when>
+                        </c:choose>
+
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    function toggleCustomRange() {
+        var isCustom = document.getElementById('rangeSelect').value === 'custom';
+        document.getElementById('customRangeFrom').style.display = isCustom ? 'block' : 'none';
+        document.getElementById('customRangeTo').style.display = isCustom ? 'block' : 'none';
+    }
+
+    function doExport(format) {
+        var range = document.getElementById('rangeSelect').value;
+        var url = '${pageContext.request.contextPath}/admin/reports?format=' + format + '&range=' + range;
+
+        if (range === 'custom') {
+            var start = document.getElementById('startDateInput').value;
+            var end = document.getElementById('endDateInput').value;
+            if (!start || !end) {
+                alert('Vui lòng chọn đầy đủ Từ ngày và Đến ngày.');
+                return;
+            }
+            url += '&startDate=' + start + '&endDate=' + end;
+        }
+
+        window.open(url, '_blank');
+    }
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

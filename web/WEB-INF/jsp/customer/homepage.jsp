@@ -9,14 +9,7 @@
 <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
 <style>
-    .category-nav-wrapper {
-        background-color: #ffffff;
-        position: sticky;
-        top: 56px;
-        z-index: 1020;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border-bottom: 1px solid #ebebeb;
-    }
+   
     .category-list {
         display: flex;
         justify-content: center;
@@ -45,30 +38,6 @@
     .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
     .hover-success:hover { color: #198754 !important; }
 </style>
-
-<!-- CATEGORY NAV BAR -->
-<nav class="category-nav-wrapper">
-    <div class="container">
-        <ul class="category-list">
-            <c:if test="${not empty categories}">
-                <c:forEach var="category" items="${categories}" varStatus="status">
-                    <li class="category-item">
-                        <a href="${pageContext.request.contextPath}/flowers?categoryID=${category.categoryID}"
-                           class="category-link ${status.index == categories.size() - 1 ? 'promo-link' : ''}">
-                            ${category.categoryName}
-                            <c:if test="${status.index != categories.size() - 1}">
-                                <i class="bi bi-chevron-down"></i>
-                            </c:if>
-                        </a>
-                    </li>
-                </c:forEach>
-            </c:if>
-            <c:if test="${empty categories}">
-                <li class="category-item"><a href="${pageContext.request.contextPath}/flowers" class="category-link">Tất cả sản phẩm</a></li>
-            </c:if>
-        </ul>
-    </div>
-</nav>
 
 <!-- HERO CAROUSEL -->
 <div id="heroCarousel" class="carousel slide mb-5 shadow-sm" data-bs-ride="carousel">
