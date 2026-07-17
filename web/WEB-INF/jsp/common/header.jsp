@@ -4,226 +4,288 @@
 <!DOCTYPE html>
 <html lang="vi">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Flower Shop</title>
+        <title>Flower Shop</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet">
 
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-          rel="stylesheet">
+        <!-- Bootstrap Icons -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+              rel="stylesheet">
 
-    <!-- CSS -->
-    <link rel="stylesheet"
-          href="${pageContext.request.contextPath}/css/style.css">
+        <!-- CSS -->
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/style.css">
 
-    <!-- Sticky footer: đẩy footer xuống đáy khi nội dung ngắn -->
-    <style>
-        html, body {
-            height: 100%;
-        }
+        <!-- Sticky footer: đẩy footer xuống đáy khi nội dung ngắn -->
+        <style>
+            html, body {
+                height: 100%;
+            }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+            body {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
 
-        .main-content {
-            flex: 1 0 auto;
-        }
+            .main-content {
+                flex: 1 0 auto;
+            }
 
-        footer {
-            flex-shrink: 0;
-        }
+            footer {
+                flex-shrink: 0;
+            }
 
-        .navbar-search {
-            max-width: 360px;
-            width: 100%;
-        }
+            .navbar-search {
+                max-width: 360px;
+                width: 100%;
+            }
 
-        .navbar-search input[type="search"] {
-            border-radius: 20px 0 0 20px;
-        }
+            .navbar-search input[type="search"] {
+                border-radius: 20px 0 0 20px;
+            }
 
-        .navbar-search button {
-            border-radius: 0 20px 20px 0;
-        }
-    </style>
-</head>
+            .navbar-search button {
+                border-radius: 0 20px 20px 0;
+            }
+            .category-nav-wrapper {
+                background-color: #ffffff;
+                border-bottom: 1px solid #ebebeb;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+            }
 
-<body>
+            .category-list {
+                display: flex;
+                justify-content: center;
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                flex-wrap: wrap;
+            }
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+            .category-link {
+                display: block;
+                padding: 12px 18px;
+                color: #4a4a4a;
+                font-weight: 600;
+                font-size: 13px;
+                text-decoration: none;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                transition: color 0.3s ease;
+            }
 
-    <div class="container">
+            .category-link:hover {
+                color: #198754;
+            }
 
-        <a class="navbar-brand fw-bold text-success"
-           href="${pageContext.request.contextPath}/home">
+            .category-link i {
+                margin-left: 5px;
+                font-size: 11px;
+            }
 
-            🌸 Flower Shop
+            .promo-link {
+                color: #dc3545 !important;
+            }
 
-        </a>
+            .promo-link:hover {
+                color: #bd2130 !important;
+            }
+        </style>
+    </head>
 
-        <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#mainNav">
+    <body>
 
-            <span class="navbar-toggler-icon"></span>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
 
-        </button>
+            <div class="container">
 
-        <div class="collapse navbar-collapse"
-             id="mainNav">
+                <a class="navbar-brand fw-bold text-success"
+                   href="${pageContext.request.contextPath}/home">
 
-            <ul class="navbar-nav me-auto">
+                    🌸 Flower Shop
 
-                <li class="nav-item">
-                    <a class="nav-link"
-                       href="${pageContext.request.contextPath}/home">
-                        Trang chủ
-                    </a>
-                </li>
+                </a>
 
-                <li class="nav-item">
-                    <a class="nav-link"
-                       href="${pageContext.request.contextPath}/flowers">
-                        Hoa
-                    </a>
-                </li>
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#mainNav">
 
-                <li class="nav-item">
-                    <a class="nav-link"
-                       href="${pageContext.request.contextPath}/cart">
-                        Giỏ hàng
-                    </a>
-                </li>
+                    <span class="navbar-toggler-icon"></span>
 
-            </ul>
-
-            <!-- THANH TÌM KIẾM -->
-            <form class="d-flex navbar-search mx-auto my-2 my-lg-0"
-                  action="${pageContext.request.contextPath}/flowers"
-                  method="get"
-                  role="search">
-                <input type="search"
-                       name="keyword"
-                       class="form-control"
-                       placeholder="Tìm kiếm hoa..."
-                       aria-label="Tìm kiếm hoa"
-                       value="${param.keyword}">
-                <button class="btn btn-success" type="submit">
-                    <i class="bi bi-search"></i>
                 </button>
-            </form>
 
-            <ul class="navbar-nav">
+                <div class="collapse navbar-collapse"
+                     id="mainNav">
 
-                <c:choose>
+                    <ul class="navbar-nav me-auto">
 
-                    <c:when test="${not empty sessionScope.user}">
-
-                        <c:if test="${sessionScope.user.roleID == 1}">
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="${pageContext.request.contextPath}/admin/dashboard">
-                                    Quản trị
-                                </a>
-                            </li>
-                        </c:if>
-
-                        <c:if test="${sessionScope.user.roleID == 2}">
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="${pageContext.request.contextPath}/staff/orders">
-                                    Quản lý đơn hàng
-                                </a>
-                            </li>
-                        </c:if>
-
-                        <li class="nav-item dropdown">
-
-                            <a class="nav-link dropdown-toggle"
-                               href="#"
-                               role="button"
-                               data-bs-toggle="dropdown">
-
-                                Xin chào,
-                                <strong>${sessionScope.user.fullName}</strong>
-
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="${pageContext.request.contextPath}/home">
+                                Trang chủ
                             </a>
+                        </li>
 
-                            <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="${pageContext.request.contextPath}/flowers">
+                                Hoa
+                            </a>
+                        </li>
 
-                                <li>
-                                    <a class="dropdown-item"
-                                       href="${pageContext.request.contextPath}/profile">
-                                        Hồ sơ cá nhân
-                                    </a>
-                                </li>
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="${pageContext.request.contextPath}/cart">
+                                Giỏ hàng
+                            </a>
+                        </li>
 
-                                <c:if test="${sessionScope.user.roleID == 3}">
-                                    <li>
-                                        <a class="dropdown-item"
-                                           href="${pageContext.request.contextPath}/orders">
-                                            Đơn hàng của tôi
+                    </ul>
+
+                    <!-- THANH TÌM KIẾM -->
+                    <form class="d-flex navbar-search mx-auto my-2 my-lg-0"
+                          action="${pageContext.request.contextPath}/flowers"
+                          method="get"
+                          role="search">
+                        <input type="search"
+                               name="keyword"
+                               class="form-control"
+                               placeholder="Tìm kiếm hoa..."
+                               aria-label="Tìm kiếm hoa"
+                               value="${param.keyword}">
+                        <button class="btn btn-success" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </form>
+
+                    <ul class="navbar-nav">
+
+                        <c:choose>
+
+                            <c:when test="${not empty sessionScope.user}">
+
+                                <c:if test="${sessionScope.user.roleID == 1}">
+                                    <li class="nav-item">
+                                        <a class="nav-link"
+                                           href="${pageContext.request.contextPath}/admin/dashboard">
+                                            Quản trị
                                         </a>
                                     </li>
                                 </c:if>
 
-                                <li>
-                                    <hr class="dropdown-divider">
+                                <c:if test="${sessionScope.user.roleID == 2}">
+                                    <li class="nav-item">
+                                        <a class="nav-link"
+                                           href="${pageContext.request.contextPath}/staff/orders">
+                                            Quản lý đơn hàng
+                                        </a>
+                                    </li>
+                                </c:if>
+
+                                <li class="nav-item dropdown">
+
+                                    <a class="nav-link dropdown-toggle"
+                                       href="#"
+                                       role="button"
+                                       data-bs-toggle="dropdown">
+
+                                        Xin chào,
+                                        <strong>${sessionScope.user.fullName}</strong>
+
+                                    </a>
+
+                                    <ul class="dropdown-menu dropdown-menu-end">
+
+                                        <li>
+                                            <a class="dropdown-item"
+                                               href="${pageContext.request.contextPath}/profile">
+                                                Hồ sơ cá nhân
+                                            </a>
+                                        </li>
+
+                                        <c:if test="${sessionScope.user.roleID == 3}">
+                                            <li>
+                                                <a class="dropdown-item"
+                                                   href="${pageContext.request.contextPath}/orders">
+                                                    Đơn hàng của tôi
+                                                </a>
+                                            </li>
+                                        </c:if>
+
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+
+                                        <li>
+                                            <a class="dropdown-item text-danger"
+                                               href="${pageContext.request.contextPath}/logout">
+                                                Đăng xuất
+                                            </a>
+                                        </li>
+
+                                    </ul>
+
                                 </li>
 
-                                <li>
-                                    <a class="dropdown-item text-danger"
-                                       href="${pageContext.request.contextPath}/logout">
-                                        Đăng xuất
+                            </c:when>
+
+                            <c:otherwise>
+
+                                <li class="nav-item">
+                                    <a class="nav-link"
+                                       href="${pageContext.request.contextPath}/login">
+                                        Đăng nhập
                                     </a>
                                 </li>
 
-                            </ul>
+                                <li class="nav-item">
+                                    <a class="nav-link"
+                                       href="${pageContext.request.contextPath}/register">
+                                        Đăng ký
+                                    </a>
+                                </li>
 
-                        </li>
+                            </c:otherwise>
 
-                    </c:when>
+                        </c:choose>
 
-                    <c:otherwise>
+                    </ul>
 
-                        <li class="nav-item">
-                            <a class="nav-link"
-                               href="${pageContext.request.contextPath}/login">
-                                Đăng nhập
-                            </a>
-                        </li>
+                </div>
 
-                        <li class="nav-item">
-                            <a class="nav-link"
-                               href="${pageContext.request.contextPath}/register">
-                                Đăng ký
-                            </a>
-                        </li>
+            </div>
 
-                    </c:otherwise>
+        </nav>
+        <!-- THANH DANH MỤC (hiển thị ở mọi trang) -->
+        <nav class="category-nav-wrapper">
+            <div class="container">
+                <ul class="category-list">
+                    <c:if test="${not empty categories}">
+                        <c:forEach var="category" items="${categories}" varStatus="status">
+                            <li class="category-item">
+                                <a href="${pageContext.request.contextPath}/flowers?categoryID=${category.categoryID}"
+                                   class="category-link ${status.last ? 'promo-link' : ''}">
+                                    ${category.categoryName}
+                                    <c:if test="${!status.last}">
+                                        <i class="bi bi-chevron-down"></i>
+                                    </c:if>
+                                </a>
+                            </li>
+                        </c:forEach>
+                    </c:if>
+                </ul>
+            </div>
+        </nav>
+        <!-- Hiển thị Message chung -->
+        <jsp:include page="/WEB-INF/jsp/common/message.jsp"/>
 
-                </c:choose>
-
-            </ul>
-
-        </div>
-
-    </div>
-
-</nav>
-
-<!-- Hiển thị Message chung -->
-<jsp:include page="/WEB-INF/jsp/common/message.jsp"/>
-
-<!-- Bọc toàn bộ nội dung chính của từng trang -->
-<div class="main-content">
+        <!-- Bọc toàn bộ nội dung chính của từng trang -->
+        <div class="main-content">

@@ -7,18 +7,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * DAO thống kê / báo cáo cho Dashboard + Report (Phạm Đức Minh).
- * Dùng PreparedStatement, extends DBContext theo chuẩn nhóm.
+ * DAO thống kê / báo cáo cho Dashboard + Report (Phạm Đức Minh). Dùng
+ * PreparedStatement, extends DBContext theo chuẩn nhóm.
  */
 public class ReportDAO extends DBContext {
 
     // ===================== DASHBOARD COUNTS =====================
-
     public int countUsers() {
         return count("SELECT COUNT(*) FROM Users");
     }
@@ -44,8 +44,7 @@ public class ReportDAO extends DBContext {
      */
     public BigDecimal getTotalRevenue() {
         String sql = "SELECT SUM(TotalAmount) FROM Orders WHERE Status = 'Completed'";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
                 BigDecimal val = rs.getBigDecimal(1);
                 return val != null ? val : BigDecimal.ZERO;
@@ -56,7 +55,64 @@ public class ReportDAO extends DBContext {
         return BigDecimal.ZERO;
     }
 
-    public BigDecimal getRevenueByDateRange(Date from, Date to) {
+    /**
+     * Doanh thu theo từng ngày trong khoảng [start, end] (bao gồm cả 2 đầu).
+     * Dùng cho báo cáo theo ngày/tuần/tháng/tùy chọn.
+     */
+    /**
+     * Doanh thu theo từng ngày trong khoảng [start, end] (bao gồm cả 2 đầu).
+     * Dùng cho báo cáo theo ngày/tuần/tháng/tùy chọn khi xuất CSV/PDF.
+     */
+    public List<Map<String, Object>> getRevenueByDateRange(java.sql.Date start, java.sql.Date end) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT CAST(OrderDate AS DATE) AS orderDay, "
+                + "       SUM(TotalAmount) AS revenue, COUNT(*) AS orderCount "
+                + "FROM Orders "
+                + "WHERE Status = 'Completed' "
+                + "  AND OrderDate >= ? AND OrderDate < DATEADD(DAY, 1, ?) "
+                + "GROUP BY CAST(OrderDate AS DATE) "
+                + "ORDER BY orderDay";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setDate(1, start);
+            ps.setDate(2, end);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("orderDay", rs.getDate("orderDay"));
+                    row.put("revenue", rs.getBigDecimal("revenue"));
+                    row.put("orderCount", rs.getInt("orderCount"));
+                    list.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Tổng doanh thu trong khoảng ngày - dùng cho dòng "Tổng cộng" ở cuối báo
+     * cáo.
+     */
+    public BigDecimal getTotalRevenueByDateRange(java.sql.Date start, java.sql.Date end) {
+        String sql = "SELECT SUM(TotalAmount) AS Revenue FROM Orders "
+                + "WHERE Status = 'Completed' AND OrderDate >= ? AND OrderDate < DATEADD(DAY, 1, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setDate(1, start);
+            ps.setDate(2, end);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal rev = rs.getBigDecimal("Revenue");
+                    return rev != null ? rev : BigDecimal.ZERO;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
+    }
+
+    public BigDecimal getRevenueByDateRange1(Date from, Date to) {
         String sql = "SELECT SUM(TotalAmount) FROM Orders "
                 + "WHERE Status = 'Completed' AND OrderDate >= ? AND OrderDate < DATEADD(day, 1, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -75,10 +131,9 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== 1. REVENUE BY MONTH =====================
-
     /**
-     * Doanh thu theo tháng trong một năm (Completed).
-     * Mỗi phần tử: year, month, revenue, orderCount
+     * Doanh thu theo tháng trong một năm (Completed). Mỗi phần tử: year, month,
+     * revenue, orderCount
      */
     public List<Map<String, Object>> getRevenueByMonth(int year) {
         List<Map<String, Object>> list = new ArrayList<>();
@@ -107,10 +162,9 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== 2. TOP SELLING =====================
-
     /**
-     * Top hoa bán chạy (đơn Completed).
-     * flowerId, flowerName, totalSold, revenue, stockQuantity
+     * Top hoa bán chạy (đơn Completed). flowerId, flowerName, totalSold,
+     * revenue, stockQuantity
      */
     public List<Map<String, Object>> getTopSellingFlowers(int topN) {
         List<Map<String, Object>> list = new ArrayList<>();
@@ -144,17 +198,15 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== 3. INVENTORY =====================
-
     /**
-     * Báo cáo tồn kho. lowStockThreshold: coi là sắp hết (vd 10).
-     * flowerId, flowerName, stockQuantity, status, stockLevel (OUT/LOW/OK)
+     * Báo cáo tồn kho. lowStockThreshold: coi là sắp hết (vd 10). flowerId,
+     * flowerName, stockQuantity, status, stockLevel (OUT/LOW/OK)
      */
     public List<Map<String, Object>> getInventoryReport(int lowStockThreshold) {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT FlowerID, FlowerName, StockQuantity, Status "
                 + "FROM Flowers ORDER BY StockQuantity ASC, FlowerName";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 int stock = rs.getInt("StockQuantity");
                 String level;
@@ -184,10 +236,9 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== 4. TOP CUSTOMERS (VIP) =====================
-
     /**
-     * Top khách theo tổng chi tiêu (đơn Completed).
-     * userId, fullName, email, totalOrders, totalSpent
+     * Top khách theo tổng chi tiêu (đơn Completed). userId, fullName, email,
+     * totalOrders, totalSpent
      */
     public List<Map<String, Object>> getTopCustomers(int topN) {
         List<Map<String, Object>> list = new ArrayList<>();
@@ -220,17 +271,14 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== 5. ORDER STATUS =====================
-
     /**
-     * Số đơn theo trạng thái.
-     * status, orderCount
+     * Số đơn theo trạng thái. status, orderCount
      */
     public List<Map<String, Object>> getOrderCountByStatus() {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql = "SELECT Status, COUNT(*) AS OrderCount "
                 + "FROM Orders GROUP BY Status ORDER BY OrderCount DESC";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("status", rs.getString("Status"));
@@ -244,10 +292,8 @@ public class ReportDAO extends DBContext {
     }
 
     // ===================== helpers =====================
-
     private int count(String sql) {
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
                 return rs.getInt(1);
             }
