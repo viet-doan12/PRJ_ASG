@@ -11,7 +11,7 @@ public final class PaginationUtil {
     /**
      * Số bản ghi mặc định trên mỗi trang.
      */
-    public static final int DEFAULT_PAGE_SIZE = 10;
+    public static final int DEFAULT_PAGE_SIZE =9;
 
     /**
      * Không cho phép tạo đối tượng.

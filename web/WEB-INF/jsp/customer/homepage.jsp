@@ -9,157 +9,424 @@
 <jsp:include page="/WEB-INF/jsp/common/header.jsp" />
 
 <style>
-   
-    .category-list {
+    :root {
+        --brand-green: #198754;
+        --brand-green-dark: #146c43;
+        --brand-pink: #d63384;
+        --text-dark: #1f2937;
+        --text-muted: #6b7280;
+        --radius-md: 14px;
+        --radius-lg: 22px;
+        --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+        --shadow-hover: 0 14px 32px rgba(25,135,84,0.16);
+    }
+
+    /* ===== HERO ===== */
+    .hero-banner {
+        position: relative;
+        height: 460px;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        overflow: hidden;
+        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
         display: flex;
+        align-items: center;
+        margin-bottom: 3rem;
+    }
+
+    .hero-banner::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 80% 30%, rgba(25,135,84,0.10) 0%, transparent 55%);
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 3;
+    }
+
+    /* ===== HOA TRANG TRÍ LƠ LỬNG TRONG NỀN ===== */
+    .hero-decor-flower {
+        position: absolute;
+        z-index: 1;
+        opacity: 0.35;
+        user-select: none;
+        pointer-events: none;
+        animation: floatFlower 6s ease-in-out infinite;
+    }
+
+    .hero-decor-flower.f1 {
+        top: 8%;
+        right: 8%;
+        font-size: 5rem;
+        animation-delay: 0s;
+    }
+    .hero-decor-flower.f2 {
+        top: 55%;
+        right: 20%;
+        font-size: 3.2rem;
+        animation-delay: 1.2s;
+        opacity: 0.25;
+    }
+    .hero-decor-flower.f3 {
+        top: 20%;
+        right: 32%;
+        font-size: 2.4rem;
+        animation-delay: 2.4s;
+        opacity: 0.3;
+    }
+    .hero-decor-flower.f4 {
+        top: 72%;
+        right: 6%;
+        font-size: 4rem;
+        animation-delay: 0.6s;
+        opacity: 0.2;
+    }
+    .hero-decor-flower.f5 {
+        top: 38%;
+        right: 4%;
+        font-size: 2rem;
+        animation-delay: 3s;
+        opacity: 0.28;
+    }
+
+    @keyframes floatFlower {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+        }
+        50%      {
+            transform: translateY(-18px) rotate(8deg);
+        }
+    }
+
+    /* Chấm bi trang trí nhỏ rải rác thêm chiều sâu */
+    .hero-banner .dot-decor {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--brand-green);
+        opacity: 0.08;
+        z-index: 1;
+    }
+
+    .dot-decor.d1 {
+        width: 120px;
+        height: 120px;
+        top: -40px;
+        right: 25%;
+    }
+    .dot-decor.d2 {
+        width: 60px;
+        height: 60px;
+        bottom: 10%;
+        right: 45%;
+    }
+    .dot-decor.d3 {
+        width: 200px;
+        height: 200px;
+        top: 30%;
+        right: -60px;
+    }
+
+    /* ===== QUICK FEATURES ===== */
+    .feature-item {
+        background: #fff;
+        border-radius: var(--radius-md);
+        padding: 1.75rem 1.25rem;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.25s ease;
+        height: 100%;
+    }
+
+    .feature-item:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .feature-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #e8f5e9;
+        color: var(--brand-green);
+        display: flex;
+        align-items: center;
         justify-content: center;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        flex-wrap: wrap;
+        font-size: 1.5rem;
+        margin: 0 auto 1rem;
     }
-    .category-link {
-        display: block;
-        padding: 14px 20px;
-        color: #4a4a4a;
+
+    .feature-item h6 {
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 0.3rem;
+    }
+
+    /* ===== SECTION TITLE ===== */
+    .section-title {
+        font-size: 1.65rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        position: relative;
+        padding-left: 16px;
+        margin-bottom: 0;
+    }
+
+    .section-title::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 3px;
+        bottom: 3px;
+        width: 4px;
+        background: var(--brand-green);
+        border-radius: 4px;
+    }
+
+    .section-link {
+        color: var(--brand-green);
         font-weight: 600;
-        font-size: 13px;
         text-decoration: none;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: color 0.3s ease;
+        font-size: 0.95rem;
     }
-    .category-link:hover { color: #198754; }
-    .category-link i { margin-left: 5px; font-size: 11px; transition: transform 0.3s; }
-    .category-link:hover i { transform: rotate(180deg); }
-    .promo-link { color: #dc3545 !important; }
-    .promo-link:hover { color: #bd2130 !important; }
-    .transition-hover { transition: all 0.3s ease; }
-    .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
-    .hover-success:hover { color: #198754 !important; }
+
+    .section-link:hover {
+        color: var(--brand-green-dark);
+    }
+
+    /* ===== PRODUCT CARD ===== */
+    .product-card {
+        border: none;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: #fff;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+    }
+
+    .product-card:hover {
+        transform: translateY(-6px);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .product-card .img-wrap {
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        background: #f3f4f6;
+    }
+
+    .product-card .img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.45s ease;
+    }
+
+    .product-card:hover .img-wrap img {
+        transform: scale(1.08);
+    }
+
+    .product-card .hot-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: #dc3545;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        z-index: 2;
+        letter-spacing: 0.03em;
+    }
+
+    .product-card .card-body {
+        padding: 1.1rem;
+        text-align: center;
+    }
+
+    .product-card .product-name {
+        font-weight: 600;
+        color: var(--text-dark);
+        text-decoration: none;
+        display: block;
+        margin-bottom: 0.4rem;
+        font-size: 0.95rem;
+        min-height: 2.4em;
+    }
+
+    .product-card .product-name:hover {
+        color: var(--brand-green);
+    }
+
+    .product-card .price {
+        color: var(--brand-pink);
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .btn-add-cart {
+        border-radius: 999px;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border: 1.5px solid var(--brand-green);
+        color: var(--brand-green);
+        background: #fff;
+        transition: all 0.2s ease;
+        width: 100%;
+    }
+
+    .btn-add-cart:hover {
+        background: var(--brand-green);
+        color: #fff;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+    }
+    .stock-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 11px;
+        border-radius: 999px;
+        letter-spacing: 0.02em;
+    }
+
+    .stock-badge.in-stock {
+        background: #e8f5e9;
+        color: var(--brand-green-dark);
+    }
+
+    .stock-badge.low-stock {
+        background: #fff3cd;
+        color: #997404;
+    }
+
+    .stock-badge.out-of-stock {
+        background: #f8d7da;
+        color: #b02a37;
+    }
 </style>
 
-<!-- HERO CAROUSEL -->
-<div id="heroCarousel" class="carousel slide mb-5 shadow-sm" data-bs-ride="carousel">
-    <div class="carousel-indicators">
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true"></button>
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-    </div>
-    <div class="carousel-inner">
-        <div class="carousel-item active" style="height: 400px; background-color: #e8f5e9;">
-            <div class="container h-100 d-flex align-items-center justify-content-center text-center">
-                <div>
-                    <h1 class="display-4 fw-bold text-success mb-3">Trao Gửi Yêu Thương</h1>
-                    <p class="lead text-dark mb-4">Mẫu hoa thiết kế tinh tế, giao hàng hỏa tốc trong 2H</p>
-                    <a href="${pageContext.request.contextPath}/flowers" class="btn btn-success btn-lg rounded-pill px-5 shadow">Mua Hoa Ngay</a>
-                </div>
-            </div>
-        </div>
-        <div class="carousel-item" style="height: 400px; background-color: #fff3e0;">
-            <div class="container h-100 d-flex align-items-center justify-content-center text-center">
-                <div>
-                    <h1 class="display-4 fw-bold text-warning mb-3">Hoa Sinh Nhật Đẹp</h1>
-                    <p class="lead text-dark mb-4">Tặng kèm thiệp cao cấp & Banner thiết kế riêng</p>
-                    <a href="${pageContext.request.contextPath}/flowers" class="btn btn-warning text-white btn-lg rounded-pill px-5 shadow">Xem Mẫu</a>
-                </div>
-            </div>
+<!-- HERO -->
+<div class="container">
+    <div class="hero-banner px-5">
+        <!-- Nền trang trí -->
+        <div class="dot-decor d1"></div>
+        <div class="dot-decor d2"></div>
+        <div class="dot-decor d3"></div>
+        <span class="hero-decor-flower f1">🌸</span>
+        <span class="hero-decor-flower f2">🌺</span>
+        <span class="hero-decor-flower f3">🌷</span>
+        <span class="hero-decor-flower f4">🌼</span>
+        <span class="hero-decor-flower f5">🌹</span>
+
+        <div class="hero-content">
+            <h1 class="hero-title">Trao Gửi<br>Yêu Thương</h1>
+            <p class="hero-subtitle">Mẫu hoa thiết kế tinh tế, giao hàng hỏa tốc trong 2 giờ. Mỗi bó hoa là một câu chuyện được chăm chút riêng cho bạn.</p>
+            <a href="${pageContext.request.contextPath}/flowers" class="btn btn-success hero-cta">
+                Mua Hoa Ngay <i class="bi bi-arrow-right ms-1"></i>
+            </a>
         </div>
     </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(100%);"></span>
-        <span class="visually-hidden">Trước</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(100%);"></span>
-        <span class="visually-hidden">Sau</span>
-    </button>
 </div>
 
 <div class="container">
+
     <!-- QUICK FEATURES -->
-    <div class="row text-center mb-5 g-4">
+    <div class="row g-3 mb-5">
         <div class="col-md-3 col-6">
-            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
-                <i class="bi bi-clock-history text-success mb-2" style="font-size: 2.5rem;"></i>
-                <h6 class="fw-bold">Giao Hỏa Tốc 2H</h6>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+                <h6>Giao Hỏa Tốc 2H</h6>
                 <p class="small text-muted mb-0">Nội thành TP.HCM, HN</p>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
-                <i class="bi bi-truck text-success mb-2" style="font-size: 2.5rem;"></i>
-                <h6 class="fw-bold">Freeship</h6>
-                <p class="small text-muted mb-0">Cho đơn hàng trên 500k</p>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="bi bi-truck"></i></div>
+                <h6>Freeship</h6>
+                <p class="small text-muted mb-0">Đơn hàng trên 500k</p>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
-                <i class="bi bi-card-text text-success mb-2" style="font-size: 2.5rem;"></i>
-                <h6 class="fw-bold">Tặng Thiệp Miễn Phí</h6>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="bi bi-card-text"></i></div>
+                <h6>Thiệp Miễn Phí</h6>
                 <p class="small text-muted mb-0">Kèm theo mỗi đơn hàng</p>
             </div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="p-3 border rounded-3 bg-light h-100 transition-hover">
-                <i class="bi bi-flower1 text-success mb-2" style="font-size: 2.5rem;"></i>
-                <h6 class="fw-bold">Hoa Tươi 3 Ngày</h6>
+            <div class="feature-item">
+                <div class="feature-icon"><i class="bi bi-flower1"></i></div>
+                <h6>Hoa Tươi 3 Ngày</h6>
                 <p class="small text-muted mb-0">Cam kết 100% tươi mới</p>
             </div>
         </div>
     </div>
 
     <!-- FEATURED PRODUCTS -->
-    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-2">
-        <h3 class="fw-bold text-success mb-0">
-            <i class="bi bi-stars text-warning me-2"></i>Sản Phẩm Nổi Bật
-        </h3>
-        <a href="${pageContext.request.contextPath}/flowers" class="text-success text-decoration-none fw-medium">Xem tất cả &raquo;</a>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="section-title">Sản Phẩm Nổi Bật</h2>
+        <a href="${pageContext.request.contextPath}/flowers" class="section-link">Xem tất cả <i class="bi bi-arrow-right"></i></a>
     </div>
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4 mb-5">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-4 g-4 mb-5">
+
         <c:if test="${empty featuredFlowers}">
-            <div class="col-12 text-center text-muted w-100">
-                <p>Chưa có sản phẩm nổi bật nào.</p>
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="bi bi-flower1" style="font-size:3rem;color:#d1d5db;"></i>
+                    <p class="mt-3 mb-0">Chưa có sản phẩm nổi bật nào.</p>
+                </div>
             </div>
         </c:if>
 
         <c:forEach var="flower" items="${featuredFlowers}">
             <div class="col">
-                <div class="card h-100 shadow-sm border-0 product-card transition-hover position-relative">
-                    <span class="badge bg-danger position-absolute top-0 start-0 m-2 px-2 py-1 shadow-sm z-1" style="font-size: 0.8rem;">
-                        HOT
-                    </span>
-                    <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="overflow-hidden rounded-top">
-                        <img src="${pageContext.request.contextPath}/images/flowers/${flower.image}"
-                             class="card-img-top p-2"
-                             style="height: 260px; object-fit: cover; border-radius: 16px; transition: transform 0.3s;"
-                             alt="${flower.flowerName}"
-                             onmouseover="this.style.transform='scale(1.05)'"
-                             onmouseout="this.style.transform='scale(1)'">
+                <div class="card product-card h-100">
+                    <span class="hot-badge">HOT</span>
+                    <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="img-wrap d-block position-relative">
+                        <c:choose>
+                            <c:when test="${flower.stockQuantity <= 0}">
+                                <span class="stock-badge out-of-stock">Hết hàng</span>
+                            </c:when>
+                            <c:when test="${flower.stockQuantity <= 5}">
+                                <span class="stock-badge low-stock">Còn ${flower.stockQuantity} sản phẩm</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="stock-badge in-stock">Còn ${flower.stockQuantity} sản phẩm</span>
+                            </c:otherwise>
+                        </c:choose>
+                        <img src="${pageContext.request.contextPath}/images/flowers/${flower.image}" alt="${flower.flowerName}">
                     </a>
-                    <div class="card-body text-center d-flex flex-column justify-content-between">
-                        <div>
-                            <h6 class="card-title fw-bold mb-2">
-                                <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="text-decoration-none text-dark hover-success">
-                                    ${flower.flowerName}
-                                </a>
-                            </h6>
-                            <p class="card-text text-danger fw-bold fs-5 mb-3">
-                                <fmt:formatNumber value="${flower.price}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
-                            </p>
+                    <div class="card-body">
+                        <a href="${pageContext.request.contextPath}/flower?id=${flower.flowerID}" class="product-name">
+                            ${flower.flowerName}
+                        </a>
+                        <div class="price">
+                            <fmt:formatNumber value="${flower.price}" type="currency" currencySymbol="đ" maxFractionDigits="0"/>
                         </div>
-                        <form action="${pageContext.request.contextPath}/cart" method="post" class="mt-auto">
+                        <form action="${pageContext.request.contextPath}/cart" method="post">
                             <input type="hidden" name="action" value="add">
                             <input type="hidden" name="flowerID" value="${flower.flowerID}">
                             <input type="hidden" name="quantity" value="1">
-                            <button type="submit" class="btn btn-outline-success w-100 fw-bold rounded-pill shadow-sm">
-                                <i class="bi bi-cart-plus-fill me-1"></i> Đặt Hàng
+                            <button type="submit" class="btn-add-cart">
+                                <i class="bi bi-cart-plus me-1"></i> Thêm vào giỏ
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
         </c:forEach>
+
     </div>
 </div>
 
