@@ -291,6 +291,129 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
+    /**
+     * Doanh thu theo NGÀY trong 1 tháng cụ thể.
+     */
+    public List<Map<String, Object>> getRevenueByDay(int year, int month) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT DAY(OrderDate) AS dayNum, SUM(TotalAmount) AS revenue, COUNT(*) AS orderCount "
+                + "FROM Orders WHERE Status = 'Completed' AND YEAR(OrderDate) = ? AND MONTH(OrderDate) = ? "
+                + "GROUP BY DAY(OrderDate) ORDER BY dayNum";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("dayNum", rs.getInt("dayNum"));
+                    row.put("revenue", rs.getBigDecimal("revenue"));
+                    row.put("orderCount", rs.getInt("orderCount"));
+                    list.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Doanh thu theo NĂM (toàn bộ các năm có dữ liệu).
+     */
+    public List<Map<String, Object>> getRevenueByYear() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT YEAR(OrderDate) AS yearNum, SUM(TotalAmount) AS revenue, COUNT(*) AS orderCount "
+                + "FROM Orders WHERE Status = 'Completed' GROUP BY YEAR(OrderDate) ORDER BY yearNum";
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("yearNum", rs.getInt("yearNum"));
+                row.put("revenue", rs.getBigDecimal("revenue"));
+                row.put("orderCount", rs.getInt("orderCount"));
+                list.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Doanh thu theo DANH MỤC (tùy chọn lọc theo năm, null = tất cả các năm).
+     */
+    public List<Map<String, Object>> getRevenueByCategory(Integer year) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT c.CategoryName AS categoryName, SUM(od.Quantity * od.UnitPrice) AS revenue, "
+                + "       SUM(od.Quantity) AS totalSold "
+                + "FROM OrderDetails od "
+                + "JOIN Orders o ON od.OrderID = o.OrderID "
+                + "JOIN Flowers f ON od.FlowerID = f.FlowerID "
+                + "JOIN Categories c ON f.CategoryID = c.CategoryID "
+                + "WHERE o.Status = 'Completed' ");
+        if (year != null) {
+            sql.append("AND YEAR(o.OrderDate) = ? ");
+        }
+        sql.append("GROUP BY c.CategoryName ORDER BY revenue DESC");
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            if (year != null) {
+                ps.setInt(1, year);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("categoryName", rs.getString("categoryName"));
+                    row.put("revenue", rs.getBigDecimal("revenue"));
+                    row.put("totalSold", rs.getInt("totalSold"));
+                    list.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Top sản phẩm bán chạy, lọc theo danh mục (categoryId <= 0 nghĩa là tất cả
+     * danh mục).
+     */
+    public List<Map<String, Object>> getTopSellingFlowersByCategory(int limit, int categoryId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT TOP (?) f.FlowerName AS flowerName, SUM(od.Quantity) AS totalSold, "
+                + "       SUM(od.Quantity * od.UnitPrice) AS revenue "
+                + "FROM OrderDetails od "
+                + "JOIN Orders o ON od.OrderID = o.OrderID "
+                + "JOIN Flowers f ON od.FlowerID = f.FlowerID "
+                + "WHERE o.Status = 'Completed' ");
+        if (categoryId > 0) {
+            sql.append("AND f.CategoryID = ? ");
+        }
+        sql.append("GROUP BY f.FlowerName ORDER BY totalSold DESC");
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            int idx = 1;
+            ps.setInt(idx++, limit);
+            if (categoryId > 0) {
+                ps.setInt(idx++, categoryId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("flowerName", rs.getString("flowerName"));
+                    row.put("totalSold", rs.getInt("totalSold"));
+                    row.put("revenue", rs.getBigDecimal("revenue"));
+                    list.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     // ===================== helpers =====================
     private int count(String sql) {
         try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {

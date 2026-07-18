@@ -52,10 +52,23 @@
                 <div>
                     <h2 class="fw-bold text-dark mb-2">${flower.flowerName}</h2>
                     <div class="mb-3">
-                        <span class="badge ${flower.stockQuantity > 0 && flower.status ? 'bg-success' : 'bg-danger'} rounded-pill px-3 py-2">
-                            <i class="bi ${flower.stockQuantity > 0 && flower.status ? 'bi-check-circle' : 'bi-x-circle'} me-1"></i>
-                            ${flower.stockQuantity > 0 && flower.status ? 'Còn hàng' : 'Hết hàng hoặc Ngừng kinh doanh'}
-                        </span>
+                        <c:choose>
+                            <c:when test="${flower.stockQuantity <= 0 || !flower.status}">
+                                <span class="badge bg-danger rounded-pill px-3 py-2">
+                                    <i class="bi bi-x-circle me-1"></i> Hết hàng hoặc Ngừng kinh doanh
+                                </span>
+                            </c:when>
+                            <c:when test="${flower.stockQuantity <= 5}">
+                                <span class="badge rounded-pill px-3 py-2" style="background:#fff3cd;color:#997404;">
+                                    <i class="bi bi-exclamation-circle me-1"></i> Sắp hết - chỉ còn ${flower.stockQuantity} sản phẩm
+                                </span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="badge bg-success rounded-pill px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i> Còn ${flower.stockQuantity} sản phẩm
+                                </span>
+                            </c:otherwise>
+                        </c:choose>
                         <span class="text-muted ms-2 small">| Mã SP: FLW-${flower.flowerID}</span>
                     </div>
 
@@ -101,29 +114,41 @@
             </div>
         </div>
 
-        <c:if test="${not empty reviewList}">
-            <div class="mt-5 border-top pt-4">
-                <h4 class="fw-bold text-success mb-3">
-                    Đánh Giá Sản Phẩm
-                    <span class="text-muted fs-6">
-                        (<fmt:formatNumber value="${averageRating}" maxFractionDigits="1"/>/5 · ${reviewCount} đánh giá)
-                    </span>
-                </h4>
-                <c:forEach var="rv" items="${reviewList}">
-                    <div class="border rounded-3 p-3 mb-2 bg-light">
-                        <div class="d-flex justify-content-between">
-                            <strong>${reviewerNames[rv.userID]}</strong>
-                            <span class="text-warning">
-                                <c:forEach begin="1" end="5" var="i">
-                                    <i class="bi ${i <= rv.rating ? 'bi-star-fill' : 'bi-star'}"></i>
-                                </c:forEach>
-                            </span>
-                        </div>
-                        <p class="mb-0 text-secondary">${rv.comment}</p>
-                    </div>
-                </c:forEach>
-            </div>
+        <div class="mt-5 border-top pt-4">
+    <h4 class="fw-bold text-success mb-3">
+        Đánh Giá Sản Phẩm
+        <c:if test="${reviewCount > 0}">
+            <span class="text-muted fs-6">
+                (<fmt:formatNumber value="${averageRating}" maxFractionDigits="1"/>/5 · ${reviewCount} đánh giá)
+            </span>
         </c:if>
+    </h4>
+
+    <c:choose>
+        <c:when test="${empty reviewList}">
+            <div class="text-center py-4 bg-light rounded-3">
+                <i class="bi bi-chat-square-text" style="font-size:2.2rem;color:#d1d5db;"></i>
+                <p class="text-muted mt-2 mb-0">Chưa có đánh giá nào cho sản phẩm này.</p>
+                <p class="text-muted small mb-0">Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+            </div>
+        </c:when>
+        <c:otherwise>
+            <c:forEach var="rv" items="${reviewList}">
+                <div class="border rounded-3 p-3 mb-2 bg-light">
+                    <div class="d-flex justify-content-between">
+                        <strong>${reviewerNames[rv.userID]}</strong>
+                        <span class="text-warning">
+                            <c:forEach begin="1" end="5" var="i">
+                                <i class="bi ${i <= rv.rating ? 'bi-star-fill' : 'bi-star'}"></i>
+                            </c:forEach>
+                        </span>
+                    </div>
+                    <p class="mb-0 text-secondary">${rv.comment}</p>
+                </div>
+            </c:forEach>
+        </c:otherwise>
+    </c:choose>
+</div>
 
         <!-- FORM VIẾT ĐÁNH GIÁ (chỉ hiện nếu khách đã mua và nhận hàng thành công) -->
         <c:choose>
@@ -184,8 +209,8 @@
                                          class="card-img-top p-2"
                                          style="height: 200px; object-fit: cover; border-radius: 16px; transition: transform 0.3s;"
                                          alt="${relFlower.flowerName}"
-                                         onmouseover="this.style.transform='scale(1.05)'"
-                                         onmouseout="this.style.transform='scale(1)'">
+                                         onmouseover="this.style.transform = 'scale(1.05)'"
+                                         onmouseout="this.style.transform = 'scale(1)'">
                                 </a>
                                 <div class="card-body text-center">
                                     <h6 class="fw-bold mb-2">
@@ -208,9 +233,16 @@
 </div>
 
 <style>
-    .transition-hover { transition: all 0.3s ease; }
-    .transition-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
-    .hover-success:hover { color: #198754 !important; }
+    .transition-hover {
+        transition: all 0.3s ease;
+    }
+    .transition-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .hover-success:hover {
+        color: #198754 !important;
+    }
 </style>
 
 <jsp:include page="/WEB-INF/jsp/common/footer.jsp" />

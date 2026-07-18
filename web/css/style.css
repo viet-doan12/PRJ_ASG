@@ -390,3 +390,122 @@ footer hr{
     }
 
 }
+/* ===== DESIGN TOKENS ===== */
+:root {
+    --brand-green: #198754;
+    --brand-green-dark: #146c43;
+    --brand-pink: #d63384;
+    --text-dark: #1f2937;
+    --text-muted: #6b7280;
+    --bg-soft: #f8faf9;
+    --border-soft: #eef1ef;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+    --shadow-hover: 0 12px 32px rgba(25,135,84,0.15);
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: var(--text-dark);
+    background-color: var(--bg-soft);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* ===== PRODUCT CARD - dùng lại cho mọi grid sản phẩm ===== */
+.product-card {
+    border: none;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    background: #fff;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-hover);
+}
+
+.product-card img {
+    transition: transform 0.4s ease;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+.product-card:hover img {
+    transform: scale(1.06);
+}
+
+.product-card .card-body {
+    padding: 1rem 1.1rem;
+}
+
+.product-card .price {
+    color: var(--brand-pink);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+/* ===== BUTTONS ===== */
+.btn-success {
+    background-color: var(--brand-green);
+    border-color: var(--brand-green);
+    border-radius: 999px;
+    font-weight: 600;
+    padding: 0.55rem 1.4rem;
+    transition: all 0.2s ease;
+}
+
+.btn-success:hover {
+    background-color: var(--brand-green-dark);
+    border-color: var(--brand-green-dark);
+    box-shadow: 0 6px 16px rgba(25,135,84,0.25);
+}
+
+/* ===== CARDS chung (checkout, cart, auth) ===== */
+.card {
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ===== SECTION SPACING - nhất quán giữa các trang ===== */
+.section-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-left: 14px;
+}
+
+.section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    background: var(--brand-green);
+    border-radius: 4px;
+}
+
+/* ===== EMPTY STATE (giỏ hàng trống, không có sản phẩm...) ===== */
+.empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 3.5rem;
+    color: #d1d5db;
+    margin-bottom: 1rem;
+    display: block;
+}

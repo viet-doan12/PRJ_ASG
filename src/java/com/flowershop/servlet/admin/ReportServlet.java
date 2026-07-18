@@ -1,6 +1,8 @@
 package com.flowershop.servlet.admin;
 
+import com.flowershop.dao.CategoryDAO;
 import com.flowershop.dao.ReportDAO;
+import com.flowershop.model.Category;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
@@ -23,11 +25,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Admin Reports. GET/POST
- * /admin/reports?type=revenue|topselling|inventory|customer|orderstatus Xuất
- * báo cáo doanh thu theo khoảng ngày (day/week/month/custom): ?format=csv ->
- * tải file CSV, mở trực tiếp bằng Excel ?format=print -> trang HTML để in /
- * "Lưu thành PDF" qua trình duyệt
+ * Admin Reports.
+ * GET/POST /admin/reports?type=revenue|topselling|inventory|customer|orderstatus
+ *
+ * Báo cáo doanh thu (type=revenue) hỗ trợ xem theo:
+ *   granularity=day   -> theo từng ngày trong 1 tháng (cần year + month)
+ *   granularity=month -> theo từng tháng trong 1 năm (mặc định)
+ *   granularity=year  -> theo từng năm (toàn bộ lịch sử)
+ *
+ * Báo cáo sản phẩm bán chạy (type=topselling) hỗ trợ lọc theo categoryId.
+ *
+ * Xuất file: ?format=csv | ?format=print (theo khoảng ngày range=day|week|month|custom)
  */
 @WebServlet(name = "ReportServlet", urlPatterns = {"/admin/reports"})
 public class ReportServlet extends HttpServlet {
@@ -36,7 +44,7 @@ public class ReportServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String format = request.getParameter("format"); // null | "csv" | "print"
+        String format = request.getParameter("format");
 
         if ("csv".equals(format) || "print".equals(format)) {
             exportRevenue(request, response, format);
@@ -53,7 +61,7 @@ public class ReportServlet extends HttpServlet {
     }
 
     // ============================================================
-    // XEM BÁO CÁO TRÊN WEB (5 loại: revenue, topselling, inventory, customer, orderstatus)
+    // XEM BÁO CÁO TRÊN WEB
     // ============================================================
     private void showReports(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -67,26 +75,38 @@ public class ReportServlet extends HttpServlet {
         type = type.trim().toLowerCase(Locale.ROOT);
 
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        int currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1;
+
         int year = parsePositiveInt(request.getParameter("year"), currentYear);
+        int month = parsePositiveInt(request.getParameter("month"), currentMonth);
         int limit = parsePositiveInt(request.getParameter("limit"), 10);
         int threshold = parsePositiveInt(request.getParameter("threshold"), 10);
+        int categoryId = parsePositiveInt(request.getParameter("categoryId"), 0);
+
+        String granularity = request.getParameter("granularity");
+        if (granularity == null || granularity.trim().isEmpty()) {
+            granularity = "month";
+        }
 
         ReportDAO reportDAO = new ReportDAO();
+        CategoryDAO categoryDAO = new CategoryDAO();
 
         List<Map<String, Object>> reportData = new ArrayList<>();
+        List<Category> categoryList = new ArrayList<>();
         BigDecimal totalRevenue = BigDecimal.ZERO;
-        BigDecimal yearRevenue = BigDecimal.ZERO;
-        int yearOrderCount = 0;
+        BigDecimal periodRevenue = BigDecimal.ZERO;
+        int periodOrderCount = 0;
 
         try {
             totalRevenue = reportDAO.getTotalRevenue();
             if (totalRevenue == null) {
                 totalRevenue = BigDecimal.ZERO;
             }
+            categoryList = categoryDAO.getActiveCategories();
 
             switch (type) {
                 case "topselling":
-                    reportData = reportDAO.getTopSellingFlowers(limit);
+                    reportData = reportDAO.getTopSellingFlowersByCategory(limit, categoryId);
                     break;
                 case "inventory":
                     reportData = reportDAO.getInventoryReport(threshold);
@@ -100,7 +120,14 @@ public class ReportServlet extends HttpServlet {
                 case "revenue":
                 default:
                     type = "revenue";
-                    reportData = reportDAO.getRevenueByMonth(year);
+                    if ("day".equals(granularity)) {
+                        reportData = reportDAO.getRevenueByDay(year, month);
+                    } else if ("year".equals(granularity)) {
+                        reportData = reportDAO.getRevenueByYear();
+                    } else {
+                        granularity = "month";
+                        reportData = reportDAO.getRevenueByMonth(year);
+                    }
                     break;
             }
 
@@ -111,47 +138,46 @@ public class ReportServlet extends HttpServlet {
             e.printStackTrace();
             request.setAttribute("error", "Không thể tải dữ liệu báo cáo. Vui lòng thử lại sau.");
             reportData = new ArrayList<>();
-            totalRevenue = BigDecimal.ZERO;
         } finally {
             reportDAO.closeConnection();
+            categoryDAO.closeConnection();
         }
 
-        if ("revenue".equals(type)) {
-            for (Map<String, Object> row : reportData) {
-                Object rev = row.get("revenue");
-                row.put("revenueDisplay", formatVnd(rev));
-                yearRevenue = yearRevenue.add(toBigDecimal(rev));
-                Object oc = row.get("orderCount");
-                if (oc instanceof Number) {
-                    yearOrderCount += ((Number) oc).intValue();
-                }
-            }
-        } else if ("topselling".equals(type)) {
-            for (Map<String, Object> row : reportData) {
+        // Định dạng tiền tệ + tính tổng theo giai đoạn đang xem
+        for (Map<String, Object> row : reportData) {
+            if (row.containsKey("revenue")) {
                 row.put("revenueDisplay", formatVnd(row.get("revenue")));
+                periodRevenue = periodRevenue.add(toBigDecimal(row.get("revenue")));
             }
-        } else if ("customer".equals(type)) {
-            for (Map<String, Object> row : reportData) {
+            if (row.containsKey("totalSpent")) {
                 row.put("totalSpentDisplay", formatVnd(row.get("totalSpent")));
+            }
+            Object oc = row.get("orderCount");
+            if (oc instanceof Number) {
+                periodOrderCount += ((Number) oc).intValue();
             }
         }
 
         request.setAttribute("reportType", type);
         request.setAttribute("reportData", reportData);
+        request.setAttribute("categoryList", categoryList);
         request.setAttribute("year", year);
+        request.setAttribute("month", month);
+        request.setAttribute("granularity", granularity);
+        request.setAttribute("categoryId", categoryId);
         request.setAttribute("limit", limit);
         request.setAttribute("threshold", threshold);
         request.setAttribute("currentYear", currentYear);
         request.setAttribute("totalRevenue", totalRevenue);
         request.setAttribute("totalRevenueDisplay", formatVnd(totalRevenue));
-        request.setAttribute("yearRevenueDisplay", formatVnd(yearRevenue));
-        request.setAttribute("yearOrderCount", yearOrderCount);
+        request.setAttribute("periodRevenueDisplay", formatVnd(periodRevenue));
+        request.setAttribute("periodOrderCount", periodOrderCount);
 
         request.getRequestDispatcher("/WEB-INF/jsp/admin/reports.jsp").forward(request, response);
     }
 
     // ============================================================
-    // XUẤT BÁO CÁO DOANH THU THEO KHOẢNG NGÀY (day / week / month / custom)
+    // XUẤT BÁO CÁO DOANH THU THEO KHOẢNG NGÀY (giữ nguyên như trước)
     // ============================================================
     private void exportRevenue(HttpServletRequest request, HttpServletResponse response, String format)
             throws IOException {
@@ -179,9 +205,6 @@ public class ReportServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Xuất CSV - mở trực tiếp bằng Excel, không cần thư viện ngoài.
-     */
     private void exportRevenueCsv(HttpServletResponse response,
             List<Map<String, Object>> data, String rangeLabel, BigDecimal totalRevenue) throws IOException {
 
@@ -189,29 +212,21 @@ public class ReportServlet extends HttpServlet {
         response.setHeader("Content-Disposition", "attachment; filename=bao-cao-doanh-thu-" + rangeLabel + ".csv");
 
         try (java.io.OutputStream os = response.getOutputStream()) {
-            // BOM giúp Excel nhận đúng UTF-8, hiển thị đúng tiếng Việt có dấu
             os.write(0xEF);
             os.write(0xBB);
             os.write(0xBF);
 
-            // Bọc cùng 1 OutputStream bằng PrintWriter, KHÔNG gọi response.getWriter() nữa
             PrintWriter writer = new PrintWriter(new java.io.OutputStreamWriter(os, java.nio.charset.StandardCharsets.UTF_8));
-
             writer.println("Ngay,So don hang,Doanh thu (VND)");
             for (Map<String, Object> row : data) {
                 writer.println(row.get("orderDay") + "," + row.get("orderCount") + "," + row.get("revenue"));
             }
             writer.println();
             writer.println("Tong cong,," + totalRevenue);
-
-            writer.flush(); // bắt buộc - đẩy hết dữ liệu vào OutputStream trước khi try-with-resources đóng nó
+            writer.flush();
         }
     }
 
-    /**
-     * Trang HTML để in / "Lưu thành PDF" qua hộp thoại in của trình duyệt
-     * (Ctrl+P).
-     */
     private void exportRevenuePrintableHtml(HttpServletResponse response,
             List<Map<String, Object>> data, String rangeLabel, BigDecimal totalRevenue,
             LocalDate start, LocalDate end) throws IOException {
@@ -234,14 +249,12 @@ public class ReportServlet extends HttpServlet {
             out.println("@media print{.no-print{display:none;}}");
             out.println("</style></head><body>");
 
-            out.println("<div class='no-print'>");
-            out.println("<button onclick='window.print()' "
+            out.println("<div class='no-print'><button onclick='window.print()' "
                     + "style='padding:10px 20px;background:#198754;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;'>"
                     + "In / Lưu thành PDF</button></div>");
 
             out.println("<h2>BÁO CÁO DOANH THU</h2>");
             out.println("<p class='sub'>Từ ngày " + formatDate(start) + " đến ngày " + formatDate(end) + "</p>");
-
             out.println("<table>");
             out.println("<tr><th>Ngày</th><th class='text-end'>Số đơn hàng</th><th class='text-end'>Doanh thu (VNĐ)</th></tr>");
 
@@ -261,9 +274,6 @@ public class ReportServlet extends HttpServlet {
         }
     }
 
-    // ============================================================
-    // Chuyển "range" param thành khoảng ngày [start, end] thực tế
-    // ============================================================
     private LocalDate[] resolveDateRange(HttpServletRequest request) {
         String range = request.getParameter("range");
         if (range == null || range.trim().isEmpty()) {
@@ -285,7 +295,7 @@ public class ReportServlet extends HttpServlet {
             case "custom":
                 String s = request.getParameter("startDate");
                 String e = request.getParameter("endDate");
-                DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE; // yyyy-MM-dd
+                DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE;
                 start = (s != null && !s.trim().isEmpty()) ? LocalDate.parse(s.trim(), fmt) : today.withDayOfMonth(1);
                 end = (e != null && !e.trim().isEmpty()) ? LocalDate.parse(e.trim(), fmt) : today;
                 break;
@@ -308,7 +318,7 @@ public class ReportServlet extends HttpServlet {
         }
         try {
             int value = Integer.parseInt(raw.trim());
-            return value > 0 ? value : defaultValue;
+            return value >= 0 ? value : defaultValue;
         } catch (NumberFormatException e) {
             return defaultValue;
         }
